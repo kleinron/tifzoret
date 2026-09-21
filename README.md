@@ -1,0 +1,1 @@
+# תפזורת\n\nHebrew word search (client-only).\n
