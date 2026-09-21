@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { buildShareUrl, type ShareSettings } from '../share/codec.ts'
+import { ShareIcon } from './actionIcons.tsx'
 
 export type ShareButtonProps = {
   words: readonly string[]
@@ -136,13 +137,14 @@ export function ShareButton({ words, settings }: ShareButtonProps) {
     <div className="share-wrap" ref={wrapRef}>
       <button
         type="button"
-        className="outline"
+        className="outline topbar-btn topbar-share"
         aria-expanded={open}
         aria-controls={popoverId}
         aria-haspopup="dialog"
         onClick={() => setOpen((value) => !value)}
       >
-        שתף
+        <ShareIcon />
+        <span>שתף</span>
       </button>
       {open ? (
         <SharePopover

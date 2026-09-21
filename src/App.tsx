@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { WordBank } from './components/WordBank.tsx'
 import { SettingsPanel } from './components/SettingsPanel.tsx'
+import { PrinterIcon } from './components/actionIcons.tsx'
 import { ShareButton } from './components/ShareButton.tsx'
 import { WordGrid } from './components/WordGrid.tsx'
 import {
@@ -248,8 +249,9 @@ export default function App() {
               noFinals,
             }}
           />
-          <button type="button" className="primary" onClick={() => window.print()}>
-            הדפס A4
+          <button type="button" className="outline topbar-btn topbar-print" onClick={() => window.print()}>
+            <PrinterIcon />
+            <span>הדפס A4</span>
           </button>
         </div>
       </header>
