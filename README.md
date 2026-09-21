@@ -17,6 +17,7 @@ Live (GitHub Pages): https://kleinron.github.io/tifzoret/
 5. בחרו גודל רשת (8–20) וגודל גופן (ברירת מחדל 18pt).
 6. **צור תפזורת** או **ערבב מחדש**. כל מילת בנק מופיעה **פעם אחת בלבד** בכיוונים הפעילים; אם נוצרת הופעה מקרית, המחולל מערבב שוב.
 7. **הדפס A4** — ההגדרות מוסתרות, והדף מכיל את הריבוע ואת בנק המילים. סימוני פתרון לא מודפסים.
+8. **שתף** — כפתור מתאר ליד ההדפסה. בחלון הקטן סמנו **כלול מילים** ו/או **כלול הגדרות** (ברירת מחדל: שניהם) ולחצו **העתק קישור**. מופיעה הודעה קצרה «הועתק».
 
 ## Usage
 
@@ -29,6 +30,17 @@ Live (GitHub Pages): https://kleinron.github.io/tifzoret/
 5. Grid size 8–20. Font size defaults to **18pt** (Assistant / Heebo).
 6. **Generate** / **Reshuffle**. Each bank word is placed **exactly once**. After random fill, the generator verifies there is no accidental second copy along enabled directions and retries until that holds (or fails clearly).
 7. **Print A4** hides settings; print shows the grid and word bank on one A4 page, without solve highlights.
+8. **Share** (outline button next to Print) opens a popover: **Include words** / **Include settings** (both on by default), then **Copy link**. A short «הועתק» toast confirms the clipboard write.
+
+## Share links
+
+Opening the app with **no `p` query param** uses built-in defaults.
+
+Shared URLs look like `https://kleinron.github.io/tifzoret/?p=…`. The payload is a **compressed binary bitstream** encoded in **base62** (`0-9A-Za-z`):
+
+- Base62 is URL-safe without `-`, `_`, or `=` so the param never needs percent-encoding and survives chat copy-paste better than base64url. It is ~1% less dense than base64url; Hebrew packing dominates the savings.
+- Hebrew words use **5-bit indices** into a **27-letter** alphabet (22 regular letters + 5 sofit). Finals are kept distinct after nikud/space normalization, so `שלום` round-trips. The solved grid is **not** stored — the recipient regenerates from words and/or settings (directions, board size, font, age-10 fill, no-finals).
+- Checkboxes control which sections are packed: words only, settings only, or both.
 
 ## Develop
 

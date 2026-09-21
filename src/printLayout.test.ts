@@ -44,6 +44,8 @@ describe('print stylesheet', () => {
     expect(print).toMatch(/\.settings/)
     expect(print).toMatch(/\.no-print/)
     expect(print).toMatch(/\.tagline/)
+    expect(print).toMatch(/\.topbar-actions/)
+    expect(print).toMatch(/\.share-popover/)
     expect(print).toMatch(/display:\s*none\s*!important/)
     expect(print).not.toMatch(/\.tagline\s*\{[^}]*font-size:\s*10pt/)
   })
