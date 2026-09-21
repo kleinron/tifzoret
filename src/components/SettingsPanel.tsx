@@ -1,6 +1,11 @@
 import type { ClipboardEvent } from 'react'
 import type { Direction, DirectionId } from '../generator/directions.ts'
-import { MAX_BANK_WORDS, MAX_WORD_LENGTH } from '../generator/wordLimits.ts'
+import type { FieldIssue } from '../generator/wordLimits.ts'
+import {
+  growBoardCtaLabel,
+  MAX_BANK_WORDS,
+  MAX_WORD_LENGTH,
+} from '../generator/wordLimits.ts'
 
 export type SettingsPanelProps = {
   directions: readonly Direction[]
@@ -13,10 +18,10 @@ export type SettingsPanelProps = {
   looksLikeWordList: (text: string) => boolean
   bank: readonly string[]
   bankLimit: number
-  validationMessages: readonly string[]
-  growTo: number | null
-  growCtaLabel: string | null
+  issues: readonly FieldIssue[]
   onGrowBoard: (size: number) => void
+  addDisabled: boolean
+  generateDisabled: boolean
   onRemoveWord: (word: string) => void
   randomAge10: boolean
   onRandomAge10: (value: boolean) => void
@@ -40,7 +45,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
   }
 
   const atLimit = props.bank.length >= props.bankLimit
-  const growTo = props.growTo
+  const invalid = props.issues.length > 0
+  const generateOff = props.busy || props.generateDisabled
 
   return (
     <aside className="panel settings no-print" aria-label="הגדרות">
@@ -68,8 +74,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
         <fieldset className="block">
           <legend>מילים</legend>
           <p className="hint">
-            מילה בכל שורה או מופרדות בפסיק. ניקוד ורווחים מוסרים. עד {MAX_BANK_WORDS}{' '}
-            מילים, עד {MAX_WORD_LENGTH} אותיות למילה.
+            מילה בכל שורה או מופרדות בפסיק. ניקוד ורווחים מוסרים. עד{' '}
+            {MAX_WORD_LENGTH} אותיות, עד {MAX_BANK_WORDS} מילים.
           </p>
           <textarea
             value={props.draft}
@@ -78,28 +84,40 @@ export function SettingsPanel(props: SettingsPanelProps) {
             rows={3}
             placeholder={'שמש\nירח\nכוכב'}
             dir="rtl"
-            aria-invalid={props.validationMessages.length > 0}
-            aria-describedby={
-              props.validationMessages.length > 0 ? 'word-validation' : undefined
-            }
+            aria-invalid={invalid}
+            aria-describedby={invalid ? 'word-validation' : undefined}
           />
-          {props.validationMessages.length > 0 ? (
-            <div className="field-alert" role="alert" dir="rtl" id="word-validation">
-              {props.validationMessages.map((msg) => (
-                <p key={msg}>{msg}</p>
-              ))}
-              {growTo != null && props.growCtaLabel ? (
-                <button
-                  type="button"
-                  className="secondary grow-cta"
-                  onClick={() => props.onGrowBoard(growTo)}
-                >
-                  {props.growCtaLabel}
-                </button>
-              ) : null}
+          {invalid ? (
+            <div id="word-validation" className="field-messages" dir="rtl">
+              {props.issues.map((issue) => {
+                const growTo = issue.growTo
+                return (
+                  <div
+                    key={`${issue.tone}:${issue.message}`}
+                    className={`field-message field-message-${issue.tone}`}
+                    aria-live="polite"
+                  >
+                    <span>{issue.message}</span>
+                    {growTo != null ? (
+                      <button
+                        type="button"
+                        className="secondary grow-cta"
+                        onClick={() => props.onGrowBoard(growTo)}
+                      >
+                        {growBoardCtaLabel(growTo)}
+                      </button>
+                    ) : null}
+                  </div>
+                )
+              })}
             </div>
           ) : null}
-          <button type="button" className="secondary" onClick={props.onAddWords}>
+          <button
+            type="button"
+            className="secondary"
+            onClick={props.onAddWords}
+            disabled={props.addDisabled}
+          >
             הוסף לרשימה
           </button>
           <p className={atLimit ? 'bank-count at-limit' : 'bank-count'}>
@@ -206,14 +224,23 @@ export function SettingsPanel(props: SettingsPanelProps) {
       </div>
 
       <div className="actions">
-        <button type="button" className="primary" onClick={props.onGenerate} disabled={props.busy}>
+        <button
+          type="button"
+          className={props.busy ? 'primary is-busy' : 'primary'}
+          onClick={props.onGenerate}
+          disabled={generateOff}
+        >
           {props.busy ? 'יוצר…' : 'צור תפזורת'}
         </button>
-        <button type="button" className="secondary" onClick={props.onReshuffle} disabled={props.busy}>
+        <button
+          type="button"
+          className={props.busy ? 'secondary is-busy' : 'secondary'}
+          onClick={props.onReshuffle}
+          disabled={props.busy}
+        >
           ערבב מחדש
         </button>
       </div>
     </aside>
   )
 }
-

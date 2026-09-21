@@ -17,9 +17,20 @@ export type WordIntakeResult = {
   overCapacity: string[]
 }
 
+export type ValidationTone = 'danger' | 'warning'
+
+export type FieldIssue = {
+  tone: ValidationTone
+  message: string
+  growTo?: number
+}
+
 export type EditorValidation = WordIntakeResult & {
+  issues: FieldIssue[]
   messages: string[]
   growTo: number | null
+  inputValid: boolean
+  canAdd: boolean
 }
 
 function uniqueKeepOrder(words: readonly string[]): string[] {
@@ -33,26 +44,16 @@ function uniqueKeepOrder(words: readonly string[]): string[] {
   return out
 }
 
-function joinHe(words: readonly string[]): string {
-  return words.join(', ')
+export function messageTooLong(): string {
+  return `עד ${MAX_WORD_LENGTH} אותיות`
 }
 
-export function messageTooLong(words: readonly string[]): string {
-  return `מילים ארוכות מ־${MAX_WORD_LENGTH} אותיות אינן מותרות: ${joinHe(words)}.`
+export function messageTooLongForGrid(gridSize: number): string {
+  return `המילה ארוכה מהלוח (${gridSize}×${gridSize})`
 }
 
-export function messageTooLongForGrid(
-  words: readonly string[],
-  gridSize: number,
-): string {
-  return `לא ניתן להוסיף מילים ארוכות מגודל הלוח (${gridSize}): ${joinHe(words)}.`
-}
-
-export function messageBankFull(added = 0): string {
-  if (added > 0) {
-    return `הבנק מוגבל ל־${MAX_BANK_WORDS} מילים. נוספו ${added} מילים והשאר לא נכנסו.`
-  }
-  return `הבנק מוגבל ל־${MAX_BANK_WORDS} מילים. לא ניתן להוסיף עוד.`
+export function messageBankFull(): string {
+  return `עד ${MAX_BANK_WORDS} מילים`
 }
 
 export function messageRandomFillCapped(): string {
@@ -131,25 +132,40 @@ export function editorValidation(
     (w) => w.length > gridSize && w.length <= MAX_WORD_LENGTH,
   )
 
-  const messages: string[] = []
+  const issues: FieldIssue[] = []
   const allTooLong = uniqueKeepOrder([...bankTooLong, ...intake.tooLong])
-  if (allTooLong.length) messages.push(messageTooLong(allTooLong))
+  if (allTooLong.length) {
+    issues.push({ tone: 'danger', message: messageTooLong() })
+  }
 
   const allTooLongForGrid = uniqueKeepOrder([
     ...bankTooLongForGrid,
     ...intake.tooLongForGrid,
   ])
+  const growTo = suggestedGridSizeForWords(allTooLongForGrid, gridSize)
   if (allTooLongForGrid.length) {
-    messages.push(messageTooLongForGrid(allTooLongForGrid, gridSize))
+    issues.push({
+      tone: 'warning',
+      message: messageTooLongForGrid(gridSize),
+      growTo: growTo ?? undefined,
+    })
   }
 
   if (intake.overCapacity.length) {
-    messages.push(messageBankFull(intake.accepted.length))
+    issues.push({ tone: 'danger', message: messageBankFull() })
   }
 
-  const growTo = suggestedGridSizeForWords(allTooLongForGrid, gridSize)
+  const inputValid = issues.length === 0
+  const canAdd = inputValid && intake.accepted.length > 0
 
-  return { ...intake, messages, growTo }
+  return {
+    ...intake,
+    issues,
+    messages: issues.map((issue) => issue.message),
+    growTo,
+    inputValid,
+    canAdd,
+  }
 }
 
 export function capBankWords(

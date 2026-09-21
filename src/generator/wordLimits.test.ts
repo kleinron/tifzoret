@@ -51,9 +51,12 @@ describe('word length cap (16)', () => {
 
   it('uses a clear Hebrew error for oversize words', () => {
     const ui = editorValidation([], LETTER_17, 20)
-    expect(ui.messages).toContain(messageTooLong([LETTER_17]))
-    expect(ui.messages[0]).toMatch(/16/)
+    expect(ui.messages).toContain(messageTooLong())
+    expect(ui.messages[0]).toBe('עד 16 אותיות')
     expect(ui.growTo).toBeNull()
+    expect(ui.inputValid).toBe(false)
+    expect(ui.canAdd).toBe(false)
+    expect(ui.issues[0]?.tone).toBe('danger')
   })
 
   it('filterBankWords flags max-length separately from grid size', () => {
@@ -81,7 +84,11 @@ describe('word length vs board size', () => {
   it('CTA label and Hebrew validation mention the needed size', () => {
     const ui = editorValidation(['שמש'], LETTER_14, 12)
     expect(ui.growTo).toBe(14)
-    expect(ui.messages).toContain(messageTooLongForGrid([LETTER_14], 12))
+    expect(ui.messages).toContain(messageTooLongForGrid(12))
+    expect(ui.messages).toContain('המילה ארוכה מהלוח (12×12)')
+    expect(ui.issues[0]?.tone).toBe('warning')
+    expect(ui.inputValid).toBe(false)
+    expect(ui.canAdd).toBe(false)
     expect(growBoardCtaLabel(14)).toBe('הגדל לוח ל־14')
   })
 
@@ -96,9 +103,8 @@ describe('word length vs board size', () => {
   it('shows a grow CTA when the bank already has a word longer than N', () => {
     const ui = editorValidation([LETTER_14, 'שמש'], '', 12)
     expect(ui.growTo).toBe(14)
-    expect(ui.messages.some((m) => m.includes('14') || m.includes(LETTER_14))).toBe(
-      true,
-    )
+    expect(ui.messages.some((m) => m.includes('12×12'))).toBe(true)
+    expect(ui.inputValid).toBe(false)
   })
 })
 
@@ -111,7 +117,10 @@ describe('max 50 words in the bank', () => {
     expect(result.overCapacity).toEqual(extra)
     expect(result.nextBank).toHaveLength(MAX_BANK_WORDS)
     const ui = editorValidation(bank, extra.join('\n'), 12)
-    expect(ui.messages).toContain(messageBankFull(0))
+    expect(ui.messages).toContain(messageBankFull())
+    expect(ui.messages).toContain('עד 50 מילים')
+    expect(ui.inputValid).toBe(false)
+    expect(ui.canAdd).toBe(false)
   })
 
   it('caps a pasted seed list at 50 and reports how many were added', () => {
@@ -121,7 +130,7 @@ describe('max 50 words in the bank', () => {
     expect(result.overCapacity).toHaveLength(5)
     expect(result.nextBank).toHaveLength(MAX_BANK_WORDS)
     const ui = editorValidation([], incoming.join('\n'), 12)
-    expect(ui.messages).toContain(messageBankFull(MAX_BANK_WORDS))
+    expect(ui.messages).toContain(messageBankFull())
   })
 
   it('capBankWords slices overflow in original order', () => {
@@ -139,6 +148,13 @@ describe('max 50 words in the bank', () => {
 })
 
 describe('paste / generate helpers', () => {
+  it('enables add when the draft has a valid new word', () => {
+    const ui = editorValidation(['שמש'], 'ירח', 12)
+    expect(ui.inputValid).toBe(true)
+    expect(ui.canAdd).toBe(true)
+    expect(ui.issues).toEqual([])
+  })
+
   it('treats newline or comma payloads as a word list', () => {
     expect(looksLikeWordList('שמש\nירח')).toBe(true)
     expect(looksLikeWordList('שמש, ירח')).toBe(true)
@@ -212,35 +228,61 @@ describe('SettingsPanel validation UI', () => {
     onReshuffle: () => undefined,
   }
 
-  it('renders the Hebrew grow-board CTA and bank counter RTL', () => {
+  it('renders an inline amber board-size message with a small grow CTA beside it', () => {
     const ui = editorValidation(['שמש'], LETTER_14, 12)
     const html = renderToStaticMarkup(
       createElement(SettingsPanel, {
         ...base,
-        validationMessages: ui.messages,
-        growTo: ui.growTo,
-        growCtaLabel: ui.growTo ? growBoardCtaLabel(ui.growTo) : null,
+        issues: ui.issues,
+        addDisabled: !ui.canAdd,
+        generateDisabled: !ui.inputValid,
       }),
     )
+    expect(html).toContain('המילה ארוכה מהלוח (12×12)')
     expect(html).toContain('הגדל לוח ל־14')
-    expect(html).toContain('role="alert"')
+    expect(html).toContain('field-message-warning')
+    expect(html).toContain('grow-cta')
     expect(html).toContain('dir="rtl"')
+    expect(html).not.toContain('role="alert"')
+    expect(html).toContain('disabled=""')
     expect(html).toContain('1 / 50 מילים')
+    expect(html).toContain('עד 16 אותיות')
+    expect(html).toContain('עד 50 מילים')
   })
 
-  it('renders the 16-letter rejection without a grow CTA', () => {
+  it('renders the 16-letter rejection in red without a grow CTA and disables add/generate', () => {
     const ui = editorValidation([], LETTER_17, 12)
     const html = renderToStaticMarkup(
       createElement(SettingsPanel, {
         ...base,
         draft: LETTER_17,
         bank: [],
-        validationMessages: ui.messages,
-        growTo: ui.growTo,
-        growCtaLabel: null,
+        issues: ui.issues,
+        addDisabled: !ui.canAdd,
+        generateDisabled: !ui.inputValid,
       }),
     )
-    expect(html).toMatch(/16/)
+    expect(html).toContain('עד 16 אותיות')
+    expect(html).toContain('field-message-danger')
     expect(html).not.toContain('הגדל לוח')
+    expect(html).toMatch(/הוסף לרשימה[\s\S]*disabled/)
+    expect(html).toMatch(/צור תפזורת[\s\S]*disabled|disabled[\s\S]*צור תפזורת/)
+  })
+
+  it('keeps add and generate enabled when the draft is empty and the bank is valid', () => {
+    const ui = editorValidation(['שמש'], '', 12)
+    expect(ui.inputValid).toBe(true)
+    expect(ui.canAdd).toBe(false)
+    const html = renderToStaticMarkup(
+      createElement(SettingsPanel, {
+        ...base,
+        draft: '',
+        issues: ui.issues,
+        addDisabled: !ui.canAdd,
+        generateDisabled: !ui.inputValid,
+      }),
+    )
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>הוסף לרשימה/)
+    expect(html).not.toMatch(/<button[^>]*disabled[^>]*>צור תפזורת/)
   })
 })

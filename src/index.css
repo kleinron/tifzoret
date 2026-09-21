@@ -178,26 +178,44 @@ textarea[aria-invalid='true'] {
   background: #fff8f6;
 }
 
-.field-alert {
+.field-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
+}
+
+.field-message {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.55rem;
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.field-message-danger {
+  color: #8a2e1f;
   background: #fde8e4;
   border: 1px solid #e2a090;
-  border-radius: 10px;
-  padding: 0.55rem 0.7rem;
-  margin: 0 0 0.5rem;
-  font-size: 0.88rem;
 }
 
-.field-alert p {
+.field-message-warning {
+  color: #7a5410;
+  background: #fbf3dd;
+  border: 1px solid #e4d09a;
+}
+
+.field-message .grow-cta {
+  width: auto;
   margin: 0;
-}
-
-.field-alert p + p {
-  margin-top: 0.35rem;
-}
-
-.field-alert .grow-cta {
-  margin-top: 0.5rem;
-  width: 100%;
+  padding: 0.18rem 0.65rem;
+  font-size: 0.78rem;
+  flex: 0 0 auto;
 }
 
 .bank-count {
@@ -273,6 +291,11 @@ button.primary {
 button.primary:disabled,
 button.secondary:disabled {
   opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.primary:disabled.is-busy,
+button.secondary:disabled.is-busy {
   cursor: wait;
 }
 

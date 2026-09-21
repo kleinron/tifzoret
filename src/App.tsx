@@ -13,7 +13,6 @@ import type { Cell } from './generator/verify.ts'
 import {
   editorValidation,
   formatRemainingDraft,
-  growBoardCtaLabel,
   looksLikeWordList,
   MAX_BANK_WORDS,
   MAX_GRID_SIZE,
@@ -105,7 +104,18 @@ export default function App() {
 
   const pasteWords = (text: string) => {
     const combined = draft.trim() ? `${draft}\n${text}` : text
-    applyIntake(parseWordList(combined))
+    const incoming = parseWordList(combined)
+    const result = planWordIntake(bank, incoming, gridSize)
+    const invalid =
+      result.tooLong.length > 0 ||
+      result.tooLongForGrid.length > 0 ||
+      result.overCapacity.length > 0
+    if (invalid) {
+      const pending = incoming.filter((word) => !bank.includes(word))
+      setDraft(formatRemainingDraft(pending))
+      return
+    }
+    applyIntake(incoming)
   }
 
   const growBoard = (size: number) => {
@@ -232,10 +242,10 @@ export default function App() {
           looksLikeWordList={looksLikeWordList}
           bank={bank}
           bankLimit={MAX_BANK_WORDS}
-          validationMessages={validation.messages}
-          growTo={validation.growTo}
-          growCtaLabel={validation.growTo ? growBoardCtaLabel(validation.growTo) : null}
+          issues={validation.issues}
           onGrowBoard={growBoard}
+          addDisabled={!validation.canAdd}
+          generateDisabled={!validation.inputValid}
           onRemoveWord={removeWord}
           randomAge10={randomAge10}
           onRandomAge10={setRandomAge10}
