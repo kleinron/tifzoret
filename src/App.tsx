@@ -249,7 +249,7 @@ export default function App() {
               noFinals,
             }}
           />
-          <button type="button" className="primary topbar-btn" onClick={() => window.print()}>
+          <button type="button" className="outline topbar-btn topbar-print" onClick={() => window.print()}>
             <PrinterIcon />
             <span>הדפס A4</span>
           </button>

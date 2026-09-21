@@ -81,46 +81,45 @@ legend {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.42rem;
-  min-width: 7.85rem;
+  gap: 0.4rem;
   min-height: 2.5rem;
-  padding: 0.5rem 0.95rem;
-  border-width: 1.5px;
-  font-size: 0.95rem;
+  padding: 0.45rem 0.9rem;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
 }
 
 .topbar-actions .topbar-btn .btn-icon {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 16px;
+  height: 16px;
   flex: 0 0 auto;
   display: block;
 }
 
-.topbar-actions button.primary.topbar-btn {
-  background: #9a4a28;
-  border-color: #7d3b1f;
-  color: #fffdf8;
+.topbar-actions button.topbar-print {
+  border-color: #6a645c;
+  color: #6a645c;
 }
 
-.topbar-actions button.primary.topbar-btn:hover {
-  background: #874024;
+.topbar-actions button.topbar-print:hover {
+  background: rgba(106, 100, 92, 0.06);
 }
 
-.topbar-actions button.outline.topbar-btn {
-  background: #fffdf8;
+.topbar-actions button.topbar-share {
   border-color: #9a4a28;
-  color: #8a4123;
+  color: #9a4a28;
 }
 
-.topbar-actions button.outline.topbar-btn:hover {
-  background: #f6ebe1;
+.topbar-actions button.topbar-share:hover {
+  background: rgba(154, 74, 40, 0.07);
 }
 
 .topbar-actions .topbar-btn:focus-visible {
-  outline: 2px solid #c47a52;
+  outline: 2px solid currentColor;
   outline-offset: 2px;
 }
 

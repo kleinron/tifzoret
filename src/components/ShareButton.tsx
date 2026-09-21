@@ -137,7 +137,7 @@ export function ShareButton({ words, settings }: ShareButtonProps) {
     <div className="share-wrap" ref={wrapRef}>
       <button
         type="button"
-        className="outline topbar-btn"
+        className="outline topbar-btn topbar-share"
         aria-expanded={open}
         aria-controls={popoverId}
         aria-haspopup="dialog"
