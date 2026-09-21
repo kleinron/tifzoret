@@ -187,15 +187,20 @@ textarea[aria-invalid='true'] {
 
 .field-message {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.35rem 0.55rem;
+  gap: 0.4rem;
   margin: 0;
   padding: 0.4rem 0.55rem;
   border-radius: 8px;
   font-size: 0.85rem;
   line-height: 1.35;
+}
+
+.field-message span {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .field-message-danger {
@@ -213,9 +218,11 @@ textarea[aria-invalid='true'] {
 .field-message .grow-cta {
   width: auto;
   margin: 0;
-  padding: 0.18rem 0.65rem;
-  font-size: 0.78rem;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
   flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .bank-count {
