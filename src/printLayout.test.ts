@@ -40,10 +40,12 @@ describe('print stylesheet', () => {
     expect(print).toMatch(/#root,\s*\.page\s*\{[^}]*margin:\s*0 auto/)
   })
 
-  it('hides settings and other no-print chrome', () => {
+  it('hides settings, tagline, and other no-print chrome', () => {
     expect(print).toMatch(/\.settings/)
     expect(print).toMatch(/\.no-print/)
+    expect(print).toMatch(/\.tagline/)
     expect(print).toMatch(/display:\s*none\s*!important/)
+    expect(print).not.toMatch(/\.tagline\s*\{[^}]*font-size:\s*10pt/)
   })
 
   it('keeps a square grid slightly under 170mm so the bank fits on A4', () => {
