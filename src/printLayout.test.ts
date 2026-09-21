@@ -46,17 +46,28 @@ describe('print stylesheet', () => {
     expect(print).toMatch(/display:\s*none\s*!important/)
   })
 
-  it('keeps a square grid at min(100%, 170mm) with configured pt type', () => {
-    expect(print).toMatch(/\.letter-grid\s*\{[^}]*width:\s*min\(100%,\s*170mm\)/)
+  it('keeps a square grid slightly under 170mm so the bank fits on A4', () => {
+    expect(print).toMatch(/\.letter-grid\s*\{[^}]*width:\s*min\(100%,\s*158mm\)/)
+    expect(print).toMatch(/\.letter-grid\s*\{[^}]*max-width:\s*158mm/)
     expect(print).toMatch(/\.letter-grid\s*\{[^}]*aspect-ratio:\s*1/)
     expect(print).not.toMatch(/100cqw/)
   })
 
-  it('places the word bank below the grid at full width', () => {
+  it('places the word bank below the grid and packs it as a dense full-width grid', () => {
     expect(print).toMatch(/\.center-col\s*\{[^}]*order:\s*1/)
     expect(print).toMatch(/\.word-bank\s*\{[^}]*order:\s*2/)
     expect(print).toMatch(/\.word-bank\s*\{[^}]*width:\s*100%/)
-    expect(print).toMatch(/\.word-bank ul\s*\{[^}]*columns:\s*3/)
+    expect(print).toMatch(/\.word-bank ul\s*\{[^}]*display:\s*grid/)
+    expect(print).toMatch(
+      /\.word-bank ul\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fill,\s*minmax\(24mm,\s*1fr\)\)/,
+    )
+    expect(print).toMatch(/\.word-bank ul\s*\{[^}]*width:\s*100%/)
+    expect(print).not.toMatch(/\.word-bank ul\s*\{[^}]*columns:\s*3/)
+  })
+
+  it('tightens word-bank item spacing so leftover words cannot orphan onto page 2', () => {
+    expect(print).toMatch(/\.word-bank li \+ li\s*\{[^}]*margin-top:\s*0/)
+    expect(print).toMatch(/\.word-bank\s*\{[^}]*break-inside:\s*avoid/)
   })
 
   it('centers letters in cells', () => {

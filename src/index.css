@@ -409,7 +409,7 @@ button.secondary {
   }
 
   .topbar {
-    margin-bottom: 6mm;
+    margin-bottom: 4mm;
     display: block;
   }
 
@@ -423,7 +423,7 @@ button.secondary {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 8mm;
+    gap: 5mm;
     width: 100%;
     max-width: 100%;
   }
@@ -449,10 +449,13 @@ button.secondary {
     border: 0;
     padding: 0;
     background: transparent;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .letter-grid {
-    width: min(100%, 170mm);
+    width: min(100%, 158mm);
+    max-width: 158mm;
     aspect-ratio: 1;
     height: auto;
     margin: 0 auto;
@@ -488,10 +491,27 @@ button.secondary {
     line-height: 1;
   }
 
+  /* CSS columns paginate badly in print (empty page-1 gap + 1–2 orphan words). */
   .word-bank ul {
-    columns: 3;
-    font-size: 12pt;
-    column-gap: 8mm;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(24mm, 1fr));
+    column-gap: 4mm;
+    row-gap: 0.4mm;
+    columns: auto;
+    column-count: auto;
+    width: 100%;
+    max-width: 100%;
+    font-size: 11pt;
+    line-height: 1.2;
+  }
+
+  .word-bank li,
+  .word-bank li + li {
+    margin: 0;
+    margin-top: 0;
+    padding: 0.05em 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .found-word {
