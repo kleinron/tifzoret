@@ -28,10 +28,16 @@ function printBlock(source: string): string {
 describe('print stylesheet', () => {
   const print = printBlock(css)
 
-  it('declares A4 at the top level so Chrome does not use the screen viewport', () => {
+  it('declares A4 with 12mm margins at the top level', () => {
     const pageAtRoot = css.slice(0, css.indexOf('@media print'))
     expect(pageAtRoot).toMatch(/@page\s*\{[^}]*size:\s*A4/)
     expect(pageAtRoot).toMatch(/@page\s*\{[^}]*margin:\s*12mm/)
+  })
+
+  it('makes html/body and the print sheet fill the page instead of an RTL side column', () => {
+    expect(print).toMatch(/html,\s*body\s*\{[^}]*width:\s*100%/)
+    expect(print).toMatch(/#root,\s*\.page\s*\{[^}]*max-width:\s*100%/)
+    expect(print).toMatch(/#root,\s*\.page\s*\{[^}]*margin:\s*0 auto/)
   })
 
   it('hides settings and other no-print chrome', () => {
@@ -40,22 +46,28 @@ describe('print stylesheet', () => {
     expect(print).toMatch(/display:\s*none\s*!important/)
   })
 
-  it('sizes the grid with %/cqw so fit-to-page cannot shrink it into a corner', () => {
-    expect(print).toMatch(/\.letter-grid\s*\{[^}]*width:\s*100%\s*!important/)
-    expect(print).toMatch(/font-size:\s*calc\(100cqw\s*\/\s*var\(--grid-n\)/)
-    expect(print).not.toMatch(/width:\s*170mm\s*;/)
+  it('keeps a square grid at min(100%, 170mm) with configured pt type', () => {
+    expect(print).toMatch(/\.letter-grid\s*\{[^}]*width:\s*min\(100%,\s*170mm\)/)
+    expect(print).toMatch(/\.letter-grid\s*\{[^}]*aspect-ratio:\s*1/)
+    expect(print).not.toMatch(/100cqw/)
   })
 
-  it('keeps square cells and centered letters', () => {
-    expect(print).toMatch(/aspect-ratio:\s*1\s*\/\s*1\s*!important/)
-    expect(print).toMatch(/text-align:\s*center\s*!important/)
-    expect(print).toMatch(/justify-content:\s*center\s*!important/)
-    expect(print).toMatch(/align-items:\s*center\s*!important/)
+  it('places the word bank below the grid at full width', () => {
+    expect(print).toMatch(/\.center-col\s*\{[^}]*order:\s*1/)
+    expect(print).toMatch(/\.word-bank\s*\{[^}]*order:\s*2/)
+    expect(print).toMatch(/\.word-bank\s*\{[^}]*width:\s*100%/)
+    expect(print).toMatch(/\.word-bank ul\s*\{[^}]*columns:\s*3/)
+  })
+
+  it('centers letters in cells', () => {
+    expect(print).toMatch(/text-align:\s*center/)
+    expect(print).toMatch(/justify-content:\s*center/)
+    expect(print).toMatch(/align-items:\s*center/)
   })
 })
 
 describe('WordGrid print hooks', () => {
-  it('exposes grid size as --grid-n and wraps letters for centering', () => {
+  it('uses the configured font size in pt and wraps letters for centering', () => {
     const html = renderToStaticMarkup(
       createElement(WordGrid, {
         grid: [
@@ -67,6 +79,7 @@ describe('WordGrid print hooks', () => {
         onPathComplete: () => undefined,
       }),
     )
+    expect(html).toMatch(/font-size:\s*18pt/)
     expect(html).toMatch(/--grid-n:\s*2/)
     expect(html).toContain('cell-letter')
     expect(html).toContain('dir="ltr"')

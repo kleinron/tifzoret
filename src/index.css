@@ -361,25 +361,23 @@ button.secondary {
   }
 }
 
-/* @page must be top-level so Chrome honors A4 instead of the screen viewport. */
+/* Headers/footers are a browser print-dialog toggle; these 12mm margins still apply. */
 @page {
-  size: A4 portrait;
+  size: A4;
   margin: 12mm;
 }
 
 @media print {
   html,
-  body,
-  #root {
-    width: 100% !important;
-    max-width: none !important;
-    min-height: 0 !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    background: #fff !important;
-    color: #000 !important;
+  body {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    background: #fff;
+    color: #000;
   }
 
   .no-print,
@@ -393,25 +391,23 @@ button.secondary {
   .center-col,
   .puzzle-main,
   .word-bank {
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-    box-shadow: none !important;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
   }
 
+  #root,
   .page {
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 3mm;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0;
+    background: #fff;
   }
 
   .topbar {
-    margin: 0;
+    margin-bottom: 6mm;
     display: block;
   }
 
@@ -425,13 +421,15 @@ button.secondary {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 3mm;
+    gap: 8mm;
     width: 100%;
+    max-width: 100%;
   }
 
   .center-col {
     order: 1;
     width: 100%;
+    max-width: 100%;
   }
 
   .puzzle-main {
@@ -439,32 +437,25 @@ button.secondary {
     padding: 0;
     background: transparent;
     width: 100%;
-    container-type: inline-size;
+    max-width: 100%;
   }
 
   .word-bank {
     order: 2;
+    width: 100%;
+    max-width: 100%;
     border: 0;
     padding: 0;
     background: transparent;
-    width: 100%;
   }
 
-  /*
-    Size with % / cqw, not mm/em. Chrome print often lays out at the screen
-    viewport then fits that canvas to A4. A fixed 170mm/em grid becomes a tiny
-    RTL block in the top-right corner after scaling.
-  */
   .letter-grid {
-    direction: ltr !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    aspect-ratio: 1 / 1 !important;
-    font-size: calc(100vw / var(--grid-n) / var(--cell-em)) !important;
-    font-size: calc(100cqw / var(--grid-n) / var(--cell-em)) !important;
-    margin: 0 auto !important;
-    border: 2pt solid #000;
+    width: min(100%, 170mm);
+    aspect-ratio: 1;
+    height: auto;
+    margin: 0 auto;
+    direction: ltr;
+    border-color: #000;
     background: #000;
     gap: 1px;
     justify-items: stretch;
@@ -476,38 +467,29 @@ button.secondary {
   .cell,
   .cell.preview,
   .cell.found {
-    aspect-ratio: auto;
-    width: 100% !important;
-    height: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    height: 100%;
     background: #fff !important;
     color: #000 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    line-height: 1 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
   .cell-letter {
-    display: block !important;
-    width: 100% !important;
-    text-align: center !important;
-    line-height: 1 !important;
+    display: block;
+    width: 100%;
+    text-align: center;
+    line-height: 1;
   }
 
   .word-bank ul {
     columns: 3;
-    font-size: 11pt;
-    line-height: 1.25;
+    font-size: 12pt;
     column-gap: 8mm;
-  }
-
-  .word-bank li {
-    padding: 0;
   }
 
   .found-word {
