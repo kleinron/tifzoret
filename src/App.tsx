@@ -35,6 +35,11 @@ const FOUND_COLORS = [
   '#d9e3a8',
 ]
 
+function clamp(value: number, min: number, max: number, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback
+  return Math.min(max, Math.max(min, Math.round(value)))
+}
+
 function cellKey(cell: Cell): string {
   return `${cell.row},${cell.col}`
 }
@@ -191,9 +196,9 @@ export default function App() {
           noFinals={noFinals}
           onNoFinals={setNoFinals}
           gridSize={gridSize}
-          onGridSize={setGridSize}
+          onGridSize={(value) => setGridSize(clamp(value, 8, 20, 12))}
           fontSize={fontSize}
-          onFontSize={setFontSize}
+          onFontSize={(value) => setFontSize(clamp(value, 12, 28, 18))}
           busy={busy}
           onGenerate={() => runGenerate(mergeDraftIntoBank(), false)}
           onReshuffle={() =>

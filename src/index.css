@@ -86,13 +86,50 @@ legend {
 }
 
 .settings {
+  display: flex;
+  flex-direction: column;
   max-height: calc(100vh - 5.5rem);
+  min-height: 0;
+}
+
+.settings-body {
   overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-bottom: 0.35rem;
+}
+
+.settings .actions {
+  position: sticky;
+  bottom: 0;
+  background: #fffdf8;
+  padding-top: 0.55rem;
+  margin-top: 0.2rem;
+  border-top: 1px solid #eadfcb;
+}
+
+.direction-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.15rem 0.55rem;
+}
+
+.direction-list li + li {
+  margin-top: 0;
+}
+
+.direction-list label span {
+  font-size: 0.86rem;
+  line-height: 1.25;
+}
+
+textarea::placeholder {
+  color: #b7a78f;
 }
 
 .settings fieldset {
   border: 0;
-  margin: 0 0 1rem;
+  margin: 0 0 0.75rem;
   padding: 0;
 }
 
@@ -101,9 +138,9 @@ legend {
 }
 
 .hint {
-  margin: 0.2rem 0 0.6rem;
+  margin: 0.15rem 0 0.4rem;
   color: #6d6153;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
 }
 
 .direction-list,
@@ -114,7 +151,6 @@ legend {
   padding: 0;
 }
 
-.direction-list li + li,
 .word-bank li + li {
   margin-top: 0.2rem;
 }
@@ -141,7 +177,9 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  margin-top: 0.65rem;
+  margin-top: 0.5rem;
+  max-height: 4.4rem;
+  overflow: auto;
 }
 
 .chip {
@@ -152,14 +190,25 @@ textarea {
   cursor: pointer;
 }
 
-.range {
+.size-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  margin-bottom: 0.7rem;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.range input {
+.size-row input[type='range'] {
+  flex: 1;
+}
+
+.size-row input[type='number'] {
+  width: 4.2rem;
+  border: 1px solid #d2c3a8;
+  border-radius: 8px;
+  padding: 0.25rem 0.35rem;
+  background: #fff;
+}
+
+.range input[type='range'] {
   width: 100%;
   accent-color: #9a4a28;
 }
@@ -281,9 +330,21 @@ button.secondary {
   .layout {
     grid-template-columns: 1fr;
   }
+
+  .settings {
+    max-height: none;
+  }
 }
 
 @media print {
+  .page,
+  .layout,
+  .center-col,
+  .puzzle-main {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
   @page {
     size: A4 portrait;
     margin: 10mm;
