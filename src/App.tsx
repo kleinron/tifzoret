@@ -170,7 +170,7 @@ export default function App() {
       <header className="topbar">
         <div>
           <h1>תפזורת</h1>
-          <p className="tagline">מחולל תפזורות בעברית · בלי שרת</p>
+          <p className="tagline no-print">מחולל תפזורות בעברית · בלי שרת</p>
         </div>
         <button
           type="button"

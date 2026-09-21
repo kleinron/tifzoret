@@ -383,6 +383,7 @@ button.secondary {
 
   .no-print,
   .settings,
+  .tagline,
   .topbar .primary {
     display: none !important;
   }
@@ -409,21 +410,15 @@ button.secondary {
   }
 
   .topbar {
-    margin-bottom: 6mm;
+    margin-bottom: 3mm;
     display: block;
-  }
-
-  .tagline {
-    color: #000;
-    font-size: 10pt;
-    margin: 0;
   }
 
   .layout {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 8mm;
+    gap: 2.5mm;
     width: 100%;
     max-width: 100%;
   }
@@ -449,10 +444,13 @@ button.secondary {
     border: 0;
     padding: 0;
     background: transparent;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .letter-grid {
-    width: min(100%, 170mm);
+    width: min(100%, 152mm);
+    max-width: 152mm;
     aspect-ratio: 1;
     height: auto;
     margin: 0 auto;
@@ -488,10 +486,27 @@ button.secondary {
     line-height: 1;
   }
 
+  /* Designer lock: 5 dense RTL columns (4–5). CSS columns orphan leftover print words. */
   .word-bank ul {
-    columns: 3;
-    font-size: 12pt;
-    column-gap: 8mm;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    column-gap: 4mm;
+    row-gap: 0.2mm;
+    columns: auto;
+    column-count: auto;
+    width: 100%;
+    max-width: 100%;
+    font-size: 11pt;
+    line-height: 1.15;
+  }
+
+  .word-bank li,
+  .word-bank li + li {
+    margin: 0;
+    margin-top: 0;
+    padding: 0.05em 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .found-word {
@@ -505,6 +520,6 @@ button.secondary {
 
   h2 {
     font-size: 12pt;
-    margin-bottom: 2mm;
+    margin-bottom: 1mm;
   }
 }

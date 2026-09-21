@@ -40,23 +40,38 @@ describe('print stylesheet', () => {
     expect(print).toMatch(/#root,\s*\.page\s*\{[^}]*margin:\s*0 auto/)
   })
 
-  it('hides settings and other no-print chrome', () => {
+  it('hides settings, tagline, and other no-print chrome', () => {
     expect(print).toMatch(/\.settings/)
     expect(print).toMatch(/\.no-print/)
+    expect(print).toMatch(/\.tagline/)
     expect(print).toMatch(/display:\s*none\s*!important/)
+    expect(print).not.toMatch(/\.tagline\s*\{[^}]*font-size:\s*10pt/)
   })
 
-  it('keeps a square grid at min(100%, 170mm) with configured pt type', () => {
-    expect(print).toMatch(/\.letter-grid\s*\{[^}]*width:\s*min\(100%,\s*170mm\)/)
+  it('keeps a square grid in the 150–160mm print lock so the bank fits on A4', () => {
+    expect(print).toMatch(/\.letter-grid\s*\{[^}]*width:\s*min\(100%,\s*152mm\)/)
+    expect(print).toMatch(/\.letter-grid\s*\{[^}]*max-width:\s*152mm/)
     expect(print).toMatch(/\.letter-grid\s*\{[^}]*aspect-ratio:\s*1/)
     expect(print).not.toMatch(/100cqw/)
   })
 
-  it('places the word bank below the grid at full width', () => {
+  it('places the word bank below the grid in 5 dense columns', () => {
     expect(print).toMatch(/\.center-col\s*\{[^}]*order:\s*1/)
     expect(print).toMatch(/\.word-bank\s*\{[^}]*order:\s*2/)
     expect(print).toMatch(/\.word-bank\s*\{[^}]*width:\s*100%/)
-    expect(print).toMatch(/\.word-bank ul\s*\{[^}]*columns:\s*3/)
+    expect(print).toMatch(/\.layout\s*\{[^}]*gap:\s*2\.5mm/)
+    expect(print).toMatch(/\.word-bank ul\s*\{[^}]*display:\s*grid/)
+    expect(print).toMatch(
+      /\.word-bank ul\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/,
+    )
+    expect(print).toMatch(/\.word-bank ul\s*\{[^}]*line-height:\s*1\.15/)
+    expect(print).toMatch(/\.word-bank ul\s*\{[^}]*width:\s*100%/)
+    expect(print).not.toMatch(/\.word-bank ul\s*\{[^}]*columns:\s*3/)
+  })
+
+  it('tightens word-bank item spacing so leftover words cannot orphan onto page 2', () => {
+    expect(print).toMatch(/\.word-bank li \+ li\s*\{[^}]*margin-top:\s*0/)
+    expect(print).toMatch(/\.word-bank\s*\{[^}]*break-inside:\s*avoid/)
   })
 
   it('centers letters in cells', () => {

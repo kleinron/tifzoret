@@ -10,7 +10,7 @@ export function WordBank(props: WordBankProps) {
       {props.words.length === 0 ? (
         <p className="hint">המילים יופיעו כאן אחרי יצירת התפזורת.</p>
       ) : (
-        <ul>
+        <ul className="word-bank-list" dir="rtl">
           {props.words.map((word) => (
             <li key={word} className={props.found.has(word) ? 'found-word' : undefined}>
               {word}
