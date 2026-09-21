@@ -376,7 +376,8 @@ button.secondary {
     margin: 0;
     padding: 0;
     overflow: visible;
-    background: #fff;
+    background: #fff !important;
+    background-image: none !important;
     color: #000;
   }
 
@@ -403,7 +404,8 @@ button.secondary {
     max-width: 100%;
     margin: 0 auto;
     padding: 0;
-    background: #fff;
+    background: #fff !important;
+    background-image: none !important;
   }
 
   .topbar {
