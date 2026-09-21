@@ -57,14 +57,15 @@ describe('normalizeHebrew', () => {
 })
 
 describe('filterBankWords', () => {
-  it('drops short words, finals, oversize, and contained words', () => {
+  it('drops short words, finals, oversize, max-length, and contained words', () => {
     const result = filterBankWords(
-      ['יד', 'שלום', 'שמש', 'כדור', 'כדורגל', 'סופרקאליפרגיל'],
+      ['יד', 'שלום', 'שמש', 'כדור', 'כדורגל', 'סופרקאליפרגיל', 'אבגדהוזחטיכלמנסעפ'],
       { noFinalLetters: true, gridSize: 8 },
     )
     expect(result.skippedShort).toContain('יד')
     expect(result.skippedFinals).toContain('שלום')
     expect(result.skippedTooLong).toContain('סופרקאליפרגיל')
+    expect(result.skippedMaxLength).toContain('אבגדהוזחטיכלמנסעפ')
     expect(result.skippedContained).toContain('כדור')
     expect(result.kept).toEqual(['כדורגל', 'שמש'])
   })
@@ -212,7 +213,7 @@ describe('generatePuzzle uniqueness', () => {
   it('fails clearly when a word is longer than the grid', () => {
     const result = generatePuzzle({
       size: 8,
-      userWords: ['סופרקאליפרגילסטיק'],
+      userWords: ['סופרקאליפרגיל'],
       directions: [...DEFAULT_DIRECTION_IDS],
       noFinalLetters: false,
       randomAge10Fill: false,
@@ -222,6 +223,21 @@ describe('generatePuzzle uniqueness', () => {
     if (result.ok) throw new Error('expected failure')
     expect(result.errorHe).toMatch(/אין מילים/)
     expect(result.skippedTooLong.length).toBeGreaterThan(0)
+  })
+
+  it('rejects words longer than 16 letters on generate', () => {
+    const result = generatePuzzle({
+      size: 20,
+      userWords: ['אבגדהוזחטיכלמנסעפ'],
+      directions: [...DEFAULT_DIRECTION_IDS],
+      noFinalLetters: false,
+      randomAge10Fill: false,
+      seed: 1,
+    })
+    expect(result.ok).toBe(false)
+    if (result.ok) throw new Error('expected failure')
+    expect(result.skippedMaxLength).toContain('אבגדהוזחטיכלמנסעפ')
+    expect(result.errorHe).toMatch(/אין מילים/)
   })
 
   it('fails when no directions are selected', () => {

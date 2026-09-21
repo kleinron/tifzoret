@@ -30,6 +30,8 @@ export const HEBREW_LETTERS = [
 ] as const
 
 export const MIN_WORD_LENGTH = 3
+/** Hard cap: a Hebrew word may not exceed this many letters. */
+export const MAX_WORD_LENGTH = 16
 
 export function hasFinalLetter(word: string): boolean {
   return FINAL_LETTERS.test(word)
@@ -69,6 +71,7 @@ export type WordFilterResult = {
   skippedFinals: string[]
   skippedContained: string[]
   skippedTooLong: string[]
+  skippedMaxLength: string[]
 }
 
 export function filterBankWords(
@@ -78,11 +81,16 @@ export function filterBankWords(
   const skippedShort: string[] = []
   const skippedFinals: string[] = []
   const skippedTooLong: string[] = []
+  const skippedMaxLength: string[] = []
   const lengthOk: string[] = []
 
   for (const word of words) {
     if (word.length < MIN_WORD_LENGTH) {
       skippedShort.push(word)
+      continue
+    }
+    if (word.length > MAX_WORD_LENGTH) {
+      skippedMaxLength.push(word)
       continue
     }
     if (word.length > options.gridSize) {
@@ -110,5 +118,12 @@ export function filterBankWords(
   }
 
   kept.sort((a, b) => a.localeCompare(b, 'he'))
-  return { kept, skippedShort, skippedFinals, skippedContained, skippedTooLong }
+  return {
+    kept,
+    skippedShort,
+    skippedFinals,
+    skippedContained,
+    skippedTooLong,
+    skippedMaxLength,
+  }
 }

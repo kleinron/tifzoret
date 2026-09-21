@@ -173,6 +173,44 @@ textarea {
   margin-bottom: 0.5rem;
 }
 
+textarea[aria-invalid='true'] {
+  border-color: #d98978;
+  background: #fff8f6;
+}
+
+.field-alert {
+  background: #fde8e4;
+  border: 1px solid #e2a090;
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+}
+
+.field-alert p {
+  margin: 0;
+}
+
+.field-alert p + p {
+  margin-top: 0.35rem;
+}
+
+.field-alert .grow-cta {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.bank-count {
+  margin: 0.4rem 0 0;
+  color: #6d6153;
+  font-size: 0.82rem;
+}
+
+.bank-count.at-limit {
+  color: #9a4a28;
+  font-weight: 600;
+}
+
 .chip-list {
   display: flex;
   flex-wrap: wrap;

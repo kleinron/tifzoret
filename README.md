@@ -10,7 +10,7 @@ Live (GitHub Pages): https://kleinron.github.io/tifzoret/
 
 1. פתחו את האפליקציה בדפדפן.
 2. סמנו **כיוונים** — אפשר כל תת-קבוצה. ברירת המחדל: מימין לשמאל, מלמעלה למטה, ואלכסון מימין-מעלה לשמאל-מטה.
-3. הדביקו מילים בתיבה (שורה או פסיק) ולחצו **הוסף לרשימה**. ניקוד ורווחים מוסרים אוטומטית.
+3. הדביקו מילים בתיבה (שורה או פסיק) ולחצו **הוסף לרשימה**. ניקוד ורווחים מוסרים אוטומטית. לכל היותר **50 מילים**, וכל מילה עד **16 אותיות**. מילה ארוכה מגודל הלוח נחסמת עם כפתור להגדלת הרשת.
 4. אפשרויות:
    - **השלם אקראי לגיל 10** — מוסיף מילים ידידותיות לילדים מקובץ מובנה (`src/data/kidWords.ts`), בלי רשת.
    - **ללא אותיות סופיות** — מילים עם ם / ן / ץ / ף / ך לא ייכנסו, והאותיות הסופיות לא יופיעו בריבוע.
@@ -22,7 +22,7 @@ Live (GitHub Pages): https://kleinron.github.io/tifzoret/
 
 1. Open the app in a browser (`npm run dev` → http://localhost:5173/tifzoret/).
 2. Tick any subset of **directions**. Defaults: right-to-left, top-to-bottom, and top-right→bottom-left.
-3. Paste seed words (one per line or comma-separated) and click **Add**. Hebrew nikud and spaces are stripped.
+3. Paste seed words (one per line or comma-separated) and click **Add**. Hebrew nikud and spaces are stripped. Bank cap: **50 words**. Max word length: **16 letters**. A word longer than the current grid is blocked, with a CTA to grow the board.
 4. Optional:
    - **Random age-10 fill** — extra kid-friendly words from the bundled corpus (offline).
    - **No final letters** — drop words containing ם ן ץ ף ך; those sofit letters also stay out of the grid.
