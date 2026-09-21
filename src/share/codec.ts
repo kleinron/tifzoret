@@ -113,8 +113,11 @@ class BitWriter {
 
 class BitReader {
   private i = 0
+  private readonly bytes: Uint8Array
 
-  constructor(private readonly bytes: Uint8Array) {}
+  constructor(bytes: Uint8Array) {
+    this.bytes = bytes
+  }
 
   remaining(): number {
     return this.bytes.length * 8 - this.i

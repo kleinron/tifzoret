@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DIRECTION_IDS, type DirectionId } from '../generator/directions.ts'
 import { HEBREW_LETTERS, MAX_WORD_LENGTH } from '../generator/hebrew.ts'
-import { MAX_BANK_WORDS } from '../generator/wordLimits.ts''
+import { MAX_BANK_WORDS } from '../generator/wordLimits.ts'
 import {
   BASE62_ALPHABET,
   buildShareUrl,
