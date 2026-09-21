@@ -173,6 +173,69 @@ textarea {
   margin-bottom: 0.5rem;
 }
 
+textarea[aria-invalid='true'] {
+  border-color: #d98978;
+  background: #fff8f6;
+}
+
+.field-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
+}
+
+.field-message {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.field-message span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.field-message-danger {
+  color: #8a2e1f;
+  background: #fde8e4;
+  border: 1px solid #e2a090;
+}
+
+.field-message-warning {
+  color: #7a5410;
+  background: #fbf3dd;
+  border: 1px solid #e4d09a;
+}
+
+.field-message .grow-cta {
+  width: auto;
+  margin: 0;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.bank-count {
+  margin: 0.4rem 0 0;
+  color: #6d6153;
+  font-size: 0.82rem;
+}
+
+.bank-count.at-limit {
+  color: #9a4a28;
+  font-weight: 600;
+}
+
 .chip-list {
   display: flex;
   flex-wrap: wrap;
@@ -235,6 +298,11 @@ button.primary {
 button.primary:disabled,
 button.secondary:disabled {
   opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.primary:disabled.is-busy,
+button.secondary:disabled.is-busy {
   cursor: wait;
 }
 

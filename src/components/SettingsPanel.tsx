@@ -1,4 +1,11 @@
+import type { ClipboardEvent } from 'react'
 import type { Direction, DirectionId } from '../generator/directions.ts'
+import type { FieldIssue } from '../generator/wordLimits.ts'
+import {
+  growBoardCtaLabel,
+  MAX_BANK_WORDS,
+  MAX_WORD_LENGTH,
+} from '../generator/wordLimits.ts'
 
 export type SettingsPanelProps = {
   directions: readonly Direction[]
@@ -7,7 +14,14 @@ export type SettingsPanelProps = {
   draft: string
   onDraftChange: (value: string) => void
   onAddWords: () => void
+  onPasteWords: (text: string) => void
+  looksLikeWordList: (text: string) => boolean
   bank: readonly string[]
+  bankLimit: number
+  issues: readonly FieldIssue[]
+  onGrowBoard: (size: number) => void
+  addDisabled: boolean
+  generateDisabled: boolean
   onRemoveWord: (word: string) => void
   randomAge10: boolean
   onRandomAge10: (value: boolean) => void
@@ -23,6 +37,17 @@ export type SettingsPanelProps = {
 }
 
 export function SettingsPanel(props: SettingsPanelProps) {
+  const onPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const text = event.clipboardData.getData('text')
+    if (!text || !props.looksLikeWordList(text)) return
+    event.preventDefault()
+    props.onPasteWords(text)
+  }
+
+  const atLimit = props.bank.length >= props.bankLimit
+  const invalid = props.issues.length > 0
+  const generateOff = props.busy || props.generateDisabled
+
   return (
     <aside className="panel settings no-print" aria-label="הגדרות">
       <h2>הגדרות</h2>
@@ -48,17 +73,56 @@ export function SettingsPanel(props: SettingsPanelProps) {
 
         <fieldset className="block">
           <legend>מילים</legend>
-          <p className="hint">מילה בכל שורה או מופרדות בפסיק. ניקוד ורווחים מוסרים.</p>
+          <p className="hint">
+            מילה בכל שורה או מופרדות בפסיק. ניקוד ורווחים מוסרים. עד{' '}
+            {MAX_WORD_LENGTH} אותיות, עד {MAX_BANK_WORDS} מילים.
+          </p>
           <textarea
             value={props.draft}
             onChange={(e) => props.onDraftChange(e.target.value)}
+            onPaste={onPaste}
             rows={3}
             placeholder={'שמש\nירח\nכוכב'}
             dir="rtl"
+            aria-invalid={invalid}
+            aria-describedby={invalid ? 'word-validation' : undefined}
           />
-          <button type="button" className="secondary" onClick={props.onAddWords}>
+          {invalid ? (
+            <div id="word-validation" className="field-messages" dir="rtl">
+              {props.issues.map((issue) => {
+                const growTo = issue.growTo
+                return (
+                  <div
+                    key={`${issue.tone}:${issue.message}`}
+                    className={`field-message field-message-${issue.tone}`}
+                    aria-live="polite"
+                  >
+                    <span>{issue.message}</span>
+                    {growTo != null ? (
+                      <button
+                        type="button"
+                        className="secondary grow-cta"
+                        onClick={() => props.onGrowBoard(growTo)}
+                      >
+                        {growBoardCtaLabel(growTo)}
+                      </button>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
+          <button
+            type="button"
+            className="secondary"
+            onClick={props.onAddWords}
+            disabled={props.addDisabled}
+          >
             הוסף לרשימה
           </button>
+          <p className={atLimit ? 'bank-count at-limit' : 'bank-count'}>
+            {props.bank.length} / {props.bankLimit} מילים
+          </p>
           {props.bank.length > 0 ? (
             <ul className="chip-list">
               {props.bank.map((word) => (
@@ -160,14 +224,23 @@ export function SettingsPanel(props: SettingsPanelProps) {
       </div>
 
       <div className="actions">
-        <button type="button" className="primary" onClick={props.onGenerate} disabled={props.busy}>
+        <button
+          type="button"
+          className={props.busy ? 'primary is-busy' : 'primary'}
+          onClick={props.onGenerate}
+          disabled={generateOff}
+        >
           {props.busy ? 'יוצר…' : 'צור תפזורת'}
         </button>
-        <button type="button" className="secondary" onClick={props.onReshuffle} disabled={props.busy}>
+        <button
+          type="button"
+          className={props.busy ? 'secondary is-busy' : 'secondary'}
+          onClick={props.onReshuffle}
+          disabled={props.busy}
+        >
           ערבב מחדש
         </button>
       </div>
     </aside>
   )
 }
-

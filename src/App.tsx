@@ -10,6 +10,17 @@ import {
 import { generatePuzzle, lettersAlong } from './generator/generate.ts'
 import { parseWordList } from './generator/hebrew.ts'
 import type { Cell } from './generator/verify.ts'
+import {
+  editorValidation,
+  formatRemainingDraft,
+  looksLikeWordList,
+  MAX_BANK_WORDS,
+  MAX_GRID_SIZE,
+  MAX_WORD_LENGTH,
+  messageRandomFillCapped,
+  MIN_GRID_SIZE,
+  planWordIntake,
+} from './generator/wordLimits.ts'
 
 const DEFAULT_BANK = [
   'שמש',
@@ -38,6 +49,10 @@ const FOUND_COLORS = [
 function clamp(value: number, min: number, max: number, fallback: number): number {
   if (!Number.isFinite(value)) return fallback
   return Math.min(max, Math.max(min, Math.round(value)))
+}
+
+function clampGridSize(value: number): number {
+  return clamp(value, MIN_GRID_SIZE, MAX_GRID_SIZE, 12)
 }
 
 function cellKey(cell: Cell): string {
@@ -71,24 +86,45 @@ export default function App() {
     })
   }
 
+  const applyIntake = (incoming: readonly string[], size = gridSize): string[] => {
+    if (incoming.length === 0) return bank
+    const result = planWordIntake(bank, incoming, size)
+    setBank(result.nextBank)
+    setDraft(formatRemainingDraft(result.remaining))
+    return result.nextBank
+  }
+
   const mergeDraftIntoBank = (): string[] => {
-    const parsed = parseWordList(draft)
-    if (parsed.length === 0) return bank
-    const seen = new Set(bank)
-    const next = [...bank]
-    for (const word of parsed) {
-      if (seen.has(word)) continue
-      seen.add(word)
-      next.push(word)
-    }
-    setBank(next)
-    setDraft('')
-    return next
+    return applyIntake(parseWordList(draft))
   }
 
   const addWords = () => {
     mergeDraftIntoBank()
   }
+
+  const pasteWords = (text: string) => {
+    const combined = draft.trim() ? `${draft}\n${text}` : text
+    const incoming = parseWordList(combined)
+    const result = planWordIntake(bank, incoming, gridSize)
+    const invalid =
+      result.tooLong.length > 0 ||
+      result.tooLongForGrid.length > 0 ||
+      result.overCapacity.length > 0
+    if (invalid) {
+      const pending = incoming.filter((word) => !bank.includes(word))
+      setDraft(formatRemainingDraft(pending))
+      return
+    }
+    applyIntake(incoming)
+  }
+
+  const growBoard = (size: number) => {
+    const nextSize = clampGridSize(size)
+    setGridSize(nextSize)
+    applyIntake(parseWordList(draft), nextSize)
+  }
+
+  const validation = editorValidation(bank, draft, gridSize)
 
   const removeWord = (word: string) => {
     setBank((prev) => prev.filter((w) => w !== word))
@@ -125,6 +161,19 @@ export default function App() {
         }
         if (result.skippedTooLong.length) {
           skipped.push(`הוסרו כי ארוכות מהרשת: ${result.skippedTooLong.join(', ')}`)
+        }
+        if (result.skippedMaxLength.length) {
+          skipped.push(
+            `לא ניתן לשבץ מילים ארוכות מ־${MAX_WORD_LENGTH} אותיות: ${result.skippedMaxLength.join(', ')}`,
+          )
+        }
+        if (result.skippedOverCapacity.length) {
+          skipped.push(
+            `לא נוספו כי הבנק מוגבל ל־${MAX_BANK_WORDS} מילים: ${result.skippedOverCapacity.join(', ')}`,
+          )
+        }
+        if (result.fillCappedAtMax) {
+          skipped.push(messageRandomFillCapped())
         }
         if (result.extraWords.length) {
           skipped.push(`נוספו ${result.extraWords.length} מילים לגיל 10`)
@@ -189,14 +238,21 @@ export default function App() {
           draft={draft}
           onDraftChange={setDraft}
           onAddWords={addWords}
+          onPasteWords={pasteWords}
+          looksLikeWordList={looksLikeWordList}
           bank={bank}
+          bankLimit={MAX_BANK_WORDS}
+          issues={validation.issues}
+          onGrowBoard={growBoard}
+          addDisabled={!validation.canAdd}
+          generateDisabled={!validation.inputValid}
           onRemoveWord={removeWord}
           randomAge10={randomAge10}
           onRandomAge10={setRandomAge10}
           noFinals={noFinals}
           onNoFinals={setNoFinals}
           gridSize={gridSize}
-          onGridSize={(value) => setGridSize(clamp(value, 8, 20, 12))}
+          onGridSize={(value) => setGridSize(clampGridSize(value))}
           fontSize={fontSize}
           onFontSize={(value) => setFontSize(clamp(value, 12, 28, 18))}
           busy={busy}

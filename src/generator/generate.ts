@@ -4,9 +4,15 @@ import {
   filterBankWords,
   HEBREW_LETTERS,
   hasFinalLetter,
+  MAX_WORD_LENGTH,
   MIN_WORD_LENGTH,
   parseWordList,
 } from './hebrew.ts'
+import {
+  capBankWords,
+  extraFillCount,
+  MAX_BANK_WORDS,
+} from './wordLimits.ts'
 import { mulberry32, pickIndex, shuffle } from './rng.ts'
 import {
   findWordOccurrences,
@@ -46,6 +52,9 @@ export type GenerateSuccess = {
   skippedFinals: string[]
   skippedContained: string[]
   skippedTooLong: string[]
+  skippedMaxLength: string[]
+  skippedOverCapacity: string[]
+  fillCappedAtMax: boolean
 }
 
 export type GenerateFailure = {
@@ -56,6 +65,8 @@ export type GenerateFailure = {
   skippedFinals: string[]
   skippedContained: string[]
   skippedTooLong: string[]
+  skippedMaxLength: string[]
+  skippedOverCapacity: string[]
 }
 
 export type GenerateResult = GenerateSuccess | GenerateFailure
@@ -76,12 +87,9 @@ function fail(
     skippedFinals: extras.skippedFinals ?? [],
     skippedContained: extras.skippedContained ?? [],
     skippedTooLong: extras.skippedTooLong ?? [],
+    skippedMaxLength: extras.skippedMaxLength ?? [],
+    skippedOverCapacity: extras.skippedOverCapacity ?? [],
   }
-}
-
-function extraWordTarget(size: number, existingCount: number): number {
-  const target = Math.max(6, Math.round(size * 1.05))
-  return Math.max(0, target - existingCount)
 }
 
 export function pickDiverseWords(
@@ -96,7 +104,11 @@ export function pickDiverseWords(
 ): string[] {
   const pool = corpus.filter((raw) => {
     if (options.exclude.has(raw)) return false
-    if (raw.length < MIN_WORD_LENGTH || raw.length > options.gridSize) {
+    if (
+      raw.length < MIN_WORD_LENGTH ||
+      raw.length > options.gridSize ||
+      raw.length > MAX_WORD_LENGTH
+    ) {
       return false
     }
     if (options.noFinalLetters && hasFinalLetter(raw)) return false
@@ -308,22 +320,27 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
     gridSize: size,
   })
 
+  const capped = capBankWords(filtered.kept)
   const skips = {
     skippedShort: filtered.skippedShort,
     skippedFinals: filtered.skippedFinals,
     skippedContained: filtered.skippedContained,
     skippedTooLong: filtered.skippedTooLong,
+    skippedMaxLength: filtered.skippedMaxLength,
+    skippedOverCapacity: capped.skippedOverCapacity,
   }
 
   const rng = request.rng ?? mulberry32(request.seed ?? Date.now() >>> 0)
   const corpus = request.corpus ?? KID_WORDS
   const extraWords: string[] = []
-  const bank = filtered.kept.slice()
+  const bank = capped.kept.slice()
+  const fillCappedAtMax =
+    Boolean(request.randomAge10Fill) && bank.length >= MAX_BANK_WORDS
 
   if (request.randomAge10Fill) {
     const extras = pickDiverseWords(corpus, {
       exclude: new Set(bank),
-      count: extraWordTarget(size, bank.length),
+      count: extraFillCount(size, bank.length),
       gridSize: size,
       noFinalLetters: request.noFinalLetters,
       rng,
@@ -337,9 +354,13 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
     noFinalLetters: request.noFinalLetters,
     gridSize: size,
   })
-  const words = again.kept
+  const limited = capBankWords(again.kept)
+  const words = limited.kept
   skips.skippedContained = [
     ...new Set([...skips.skippedContained, ...again.skippedContained]),
+  ]
+  skips.skippedOverCapacity = [
+    ...new Set([...skips.skippedOverCapacity, ...limited.skippedOverCapacity]),
   ]
 
   if (words.length === 0) {
@@ -384,6 +405,7 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
       placements,
       attempts: attempt,
       extraWords,
+      fillCappedAtMax,
       ...skips,
     }
   }
