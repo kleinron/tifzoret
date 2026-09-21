@@ -23,6 +23,7 @@ export function SharePopover(props: SharePopoverProps) {
       className="share-popover"
       role="dialog"
       aria-label="שיתוף קישור"
+      onPointerDown={(event) => event.stopPropagation()}
     >
       <label className="toggle">
         <input
@@ -40,7 +41,15 @@ export function SharePopover(props: SharePopoverProps) {
         />
         <span>כלול הגדרות</span>
       </label>
-      <button type="button" className="primary" onClick={props.onCopy}>
+      <button
+        type="button"
+        className="primary"
+        onPointerDown={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          props.onCopy()
+        }}
+      >
         העתק קישור
       </button>
       {props.copied ? (
@@ -120,7 +129,7 @@ export function ShareButton({ words, settings }: ShareButtonProps) {
     copyToClipboard(url)
     setToast(true)
     window.clearTimeout(toastTimer.current)
-    toastTimer.current = window.setTimeout(() => setToast(false), 1800)
+    toastTimer.current = window.setTimeout(() => setToast(false), 2500)
   }
 
   return (
