@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { WordBank } from './components/WordBank.tsx'
 import { SettingsPanel } from './components/SettingsPanel.tsx'
+import { ShareButton } from './components/ShareButton.tsx'
 import { WordGrid } from './components/WordGrid.tsx'
 import {
   DEFAULT_DIRECTION_IDS,
@@ -21,6 +22,7 @@ import {
   MIN_GRID_SIZE,
   planWordIntake,
 } from './generator/wordLimits.ts'
+import { payloadFromSearch, type SharePayload } from './share/codec.ts'
 
 const DEFAULT_BANK = [
   'שמש',
@@ -59,16 +61,30 @@ function cellKey(cell: Cell): string {
   return `${cell.row},${cell.col}`
 }
 
+function readShareFromWindow(): SharePayload | null {
+  if (typeof window === 'undefined') return null
+  return payloadFromSearch(window.location.search)
+}
+
 export default function App() {
+  const [boot] = useState(readShareFromWindow)
   const [enabledDirs, setEnabledDirs] = useState<Set<DirectionId>>(
-    () => new Set(DEFAULT_DIRECTION_IDS),
+    () => new Set(boot?.settings?.directions ?? DEFAULT_DIRECTION_IDS),
   )
   const [draft, setDraft] = useState('')
-  const [bank, setBank] = useState<string[]>(DEFAULT_BANK)
-  const [randomAge10, setRandomAge10] = useState(false)
-  const [noFinals, setNoFinals] = useState(false)
-  const [gridSize, setGridSize] = useState(12)
-  const [fontSize, setFontSize] = useState(18)
+  const [bank, setBank] = useState<string[]>(() =>
+    boot?.words !== undefined ? boot.words : DEFAULT_BANK,
+  )
+  const [randomAge10, setRandomAge10] = useState(
+    () => boot?.settings?.randomAge10 ?? false,
+  )
+  const [noFinals, setNoFinals] = useState(() => boot?.settings?.noFinals ?? false)
+  const [gridSize, setGridSize] = useState(() =>
+    boot?.settings ? clampGridSize(boot.settings.gridSize) : 12,
+  )
+  const [fontSize, setFontSize] = useState(() =>
+    boot?.settings ? clamp(boot.settings.fontSize, 12, 28, 18) : 18,
+  )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notes, setNotes] = useState<string[]>([])
@@ -209,7 +225,7 @@ export default function App() {
   }, [grid, puzzleWords.length])
 
   useEffect(() => {
-    runGenerate(DEFAULT_BANK, false)
+    runGenerate(bank, false)
     // First paint only — avoid regenerating when settings objects change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -221,13 +237,21 @@ export default function App() {
           <h1>תפזורת</h1>
           <p className="tagline no-print">מחולל תפזורות בעברית · בלי שרת</p>
         </div>
-        <button
-          type="button"
-          className="primary no-print"
-          onClick={() => window.print()}
-        >
-          הדפס A4
-        </button>
+        <div className="topbar-actions no-print">
+          <ShareButton
+            words={bank}
+            settings={{
+              directions: [...enabledDirs],
+              gridSize,
+              fontSize,
+              randomAge10,
+              noFinals,
+            }}
+          />
+          <button type="button" className="primary" onClick={() => window.print()}>
+            הדפס A4
+          </button>
+        </div>
       </header>
 
       <div className="layout">

@@ -70,6 +70,53 @@ legend {
   color: #6a5d4c;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.share-wrap {
+  position: relative;
+}
+
+.share-popover {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  inset-inline-start: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 12.75rem;
+  padding: 0.75rem 0.85rem;
+  background: #fffdf8;
+  border: 1px solid #ddcfb6;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(92, 70, 36, 0.16);
+}
+
+.share-popover .primary {
+  width: 100%;
+  margin-top: 0.15rem;
+}
+
+.share-toast {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  background: #3d3428;
+  color: #fffdf8;
+  padding: 0.4rem 0.95rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  pointer-events: none;
+  box-shadow: 0 8px 18px rgba(61, 52, 40, 0.22);
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(160px, 220px);
@@ -283,7 +330,8 @@ textarea[aria-invalid='true'] {
 }
 
 button.primary,
-button.secondary {
+button.secondary,
+button.outline {
   border-radius: 999px;
   border: 1px solid transparent;
   padding: 0.55rem 1rem;
@@ -310,6 +358,12 @@ button.secondary {
   background: #fff;
   border-color: #cbb996;
   color: #3d3428;
+}
+
+button.outline {
+  background: transparent;
+  border-color: #9a4a28;
+  color: #9a4a28;
 }
 
 .center-col {
@@ -452,6 +506,10 @@ button.secondary {
   .no-print,
   .settings,
   .tagline,
+  .topbar-actions,
+  .share-wrap,
+  .share-popover,
+  .share-toast,
   .topbar .primary {
     display: none !important;
   }
