@@ -271,8 +271,17 @@ button.secondary {
 }
 
 .letter-grid {
+  --grid-n: 12;
+  --cell-em: 1.85;
   display: grid;
   direction: ltr;
+  unicode-bidi: isolate;
+  grid-template-columns: repeat(var(--grid-n), 1fr);
+  grid-template-rows: repeat(var(--grid-n), 1fr);
+  justify-items: stretch;
+  align-items: stretch;
+  width: min(100%, calc(var(--grid-n) * var(--cell-em) * 1em));
+  aspect-ratio: 1 / 1;
   gap: 0;
   margin: 0 auto;
   user-select: none;
@@ -286,11 +295,27 @@ button.secondary {
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  direction: ltr;
+  unicode-bidi: isolate;
   background: #fffdf8;
   color: #1f1a14;
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
+}
+
+.cell-letter {
+  display: block;
+  width: 100%;
+  text-align: center;
+  line-height: 1;
 }
 
 .cell.preview {
@@ -336,23 +361,23 @@ button.secondary {
   }
 }
 
-@media print {
-  .page,
-  .layout,
-  .center-col,
-  .puzzle-main {
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-  @page {
-    size: A4 portrait;
-    margin: 10mm;
-  }
+/* Headers/footers are a browser print-dialog toggle; these 12mm margins still apply. */
+@page {
+  size: A4;
+  margin: 12mm;
+}
 
+@media print {
   html,
   body {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
     background: #fff !important;
+    background-image: none !important;
     color: #000;
   }
 
@@ -362,59 +387,111 @@ button.secondary {
     display: none !important;
   }
 
+  .page,
+  .layout,
+  .center-col,
+  .puzzle-main,
+  .word-bank {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
+  }
+
+  #root,
   .page {
-    max-width: none;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
     padding: 0;
+    background: #fff !important;
+    background-image: none !important;
   }
 
   .topbar {
     margin-bottom: 6mm;
+    display: block;
+  }
+
+  .tagline {
+    color: #000;
+    font-size: 10pt;
+    margin: 0;
   }
 
   .layout {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     gap: 8mm;
+    width: 100%;
+    max-width: 100%;
   }
 
   .center-col {
     order: 1;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .puzzle-main {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    width: 100%;
+    max-width: 100%;
   }
 
   .word-bank {
     order: 2;
-    box-shadow: none;
-    border: 0;
-    padding: 0;
-    background: transparent;
-  }
-
-  .puzzle-main {
-    box-shadow: none;
+    width: 100%;
+    max-width: 100%;
     border: 0;
     padding: 0;
     background: transparent;
   }
 
   .letter-grid {
-    width: 170mm;
-    max-width: 100%;
+    width: min(100%, 170mm);
+    aspect-ratio: 1;
+    height: auto;
+    margin: 0 auto;
+    direction: ltr;
     border-color: #000;
     background: #000;
+    gap: 1px;
+    justify-items: stretch;
+    align-items: stretch;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .cell,
   .cell.preview,
   .cell.found {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    height: 100%;
     background: #fff !important;
     color: #000 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
+  .cell-letter {
+    display: block;
+    width: 100%;
+    text-align: center;
+    line-height: 1;
+  }
+
   .word-bank ul {
     columns: 3;
     font-size: 12pt;
+    column-gap: 8mm;
   }
 
   .found-word {
@@ -424,5 +501,10 @@ button.secondary {
 
   h1 {
     font-size: 18pt;
+  }
+
+  h2 {
+    font-size: 12pt;
+    margin-bottom: 2mm;
   }
 }

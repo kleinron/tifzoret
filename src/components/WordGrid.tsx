@@ -1,4 +1,11 @@
-import { useCallback, useId, useRef, useState, type PointerEvent } from 'react'
+import {
+  useCallback,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+} from 'react'
 import type { Cell } from '../generator/verify.ts'
 
 export type WordGridProps = {
@@ -100,11 +107,12 @@ export function WordGrid(props: WordGridProps) {
         ref={rootRef}
         className="letter-grid"
         dir="ltr"
-        style={{
-          gridTemplateColumns: `repeat(${size}, 1fr)`,
-          fontSize: `${props.fontSize}pt`,
-          width: `min(100%, ${Math.max(size * 1.85, 8)}em)`,
-        }}
+        style={
+          {
+            '--grid-n': String(size),
+            fontSize: `${props.fontSize}pt`,
+          } as CSSProperties
+        }
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -130,7 +138,7 @@ export function WordGrid(props: WordGridProps) {
                 role="gridcell"
                 style={foundColor ? { backgroundColor: foundColor } : undefined}
               >
-                {letter}
+                <span className="cell-letter">{letter}</span>
               </div>
             )
           }),
