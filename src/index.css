@@ -103,18 +103,14 @@ legend {
 }
 
 .share-toast {
-  position: fixed;
-  bottom: 1.25rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 40;
+  margin: 0;
+  text-align: center;
   background: #3d3428;
   color: #fffdf8;
-  padding: 0.4rem 0.95rem;
+  padding: 0.28rem 0.7rem;
   border-radius: 999px;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   pointer-events: none;
-  box-shadow: 0 8px 18px rgba(61, 52, 40, 0.22);
 }
 
 .layout {

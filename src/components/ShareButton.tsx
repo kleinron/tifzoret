@@ -10,6 +10,7 @@ export type SharePopoverProps = {
   id?: string
   includeWords: boolean
   includeSettings: boolean
+  copied?: boolean
   onIncludeWords: (value: boolean) => void
   onIncludeSettings: (value: boolean) => void
   onCopy: () => void
@@ -42,29 +43,43 @@ export function SharePopover(props: SharePopoverProps) {
       <button type="button" className="primary" onClick={props.onCopy}>
         העתק קישור
       </button>
+      {props.copied ? (
+        <div className="share-toast" role="status" aria-live="polite">
+          הועתק
+        </div>
+      ) : null}
     </div>
   )
 }
 
-async function copyToClipboard(text: string): Promise<void> {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text)
-      return
-    }
-  } catch {
-    // Some browsers expose clipboard but deny permission; fall back.
-  }
+function execCopy(text: string): boolean {
   const el = document.createElement('textarea')
   el.value = text
   el.setAttribute('readonly', '')
   el.style.position = 'fixed'
-  el.style.top = '-1000px'
+  el.style.left = '-9999px'
   document.body.appendChild(el)
   el.select()
-  const ok = document.execCommand('copy')
-  document.body.removeChild(el)
-  if (!ok) throw new Error('copy failed')
+  let ok = false
+  try {
+    ok = document.execCommand('copy')
+  } finally {
+    document.body.removeChild(el)
+  }
+  return ok
+}
+
+function copyToClipboard(text: string): void {
+  if (navigator.clipboard?.writeText) {
+    const timeout = new Promise<never>((_, reject) => {
+      window.setTimeout(() => reject(new Error('clipboard timeout')), 400)
+    })
+    void Promise.race([navigator.clipboard.writeText(text), timeout]).catch(() => {
+      execCopy(text)
+    })
+    return
+  }
+  execCopy(text)
 }
 
 export function ShareButton({ words, settings }: ShareButtonProps) {
@@ -102,13 +117,10 @@ export function ShareButton({ words, settings }: ShareButtonProps) {
       },
       window.location.href,
     )
-    void copyToClipboard(url)
-      .then(() => {
-        setToast(true)
-        window.clearTimeout(toastTimer.current)
-        toastTimer.current = window.setTimeout(() => setToast(false), 1800)
-      })
-      .catch(() => undefined)
+    copyToClipboard(url)
+    setToast(true)
+    window.clearTimeout(toastTimer.current)
+    toastTimer.current = window.setTimeout(() => setToast(false), 1800)
   }
 
   return (
@@ -128,15 +140,11 @@ export function ShareButton({ words, settings }: ShareButtonProps) {
           id={popoverId}
           includeWords={includeWords}
           includeSettings={includeSettings}
+          copied={toast}
           onIncludeWords={setIncludeWords}
           onIncludeSettings={setIncludeSettings}
           onCopy={onCopy}
         />
-      ) : null}
-      {toast ? (
-        <div className="share-toast" role="status" aria-live="polite">
-          הועתק
-        </div>
       ) : null}
     </div>
   )

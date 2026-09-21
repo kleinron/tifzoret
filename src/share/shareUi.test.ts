@@ -38,4 +38,19 @@ describe('share popover (designer lock)', () => {
     expect(html.match(/type="checkbox"/g)?.length).toBe(2)
     expect(html.match(/checked=""/g)?.length).toBe(2)
   })
+
+  it('shows a short הועתק toast after copy', () => {
+    const html = renderToStaticMarkup(
+      createElement(SharePopover, {
+        includeWords: true,
+        includeSettings: true,
+        copied: true,
+        onIncludeWords: () => undefined,
+        onIncludeSettings: () => undefined,
+        onCopy: () => undefined,
+      }),
+    )
+    expect(html).toContain('הועתק')
+    expect(html).toContain('share-toast')
+  })
 })
