@@ -60,6 +60,9 @@ export function messageRandomFillCapped(): string {
   return `השלמה אקראית הופסקה במקסימום ${MAX_BANK_WORDS} מילים.`
 }
 
+/** Setting name. Fill runs on «צור», not as its own action. */
+export const AGE10_FILL_LABEL = 'מילוי אוטומטי לגיל ~10'
+
 export function growBoardCtaLabel(size: number): string {
   return `הגדל לוח ל־${size}`
 }
@@ -185,6 +188,13 @@ export function extraFillCount(size: number, existingCount: number): number {
   const desired = Math.max(0, densityTarget - existingCount)
   const room = Math.max(0, MAX_BANK_WORDS - existingCount)
   return Math.min(desired, room)
+}
+
+/** Hint under the age-10 toggle. K is extraFillCount; idle when nothing would be added. */
+export function age10FillHint(gridSize: number, existingCount: number): string {
+  const extra = extraFillCount(gridSize, existingCount)
+  if (extra <= 0) return 'כבר ביעד ללוח הזה — לא יתווספו מילים'
+  return `יוסיף עוד ${extra} מילים ידידותיות לגיל ~10`
 }
 
 export function formatRemainingDraft(words: readonly string[]): string {

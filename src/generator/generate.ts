@@ -10,6 +10,7 @@ import {
 } from './hebrew.ts'
 import {
   capBankWords,
+  AGE10_FILL_LABEL,
   extraFillCount,
   MAX_BANK_WORDS,
 } from './wordLimits.ts'
@@ -366,7 +367,7 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
   if (words.length === 0) {
     return fail(
       'No words to place. Add words or enable the age-10 filler.',
-      'אין מילים לשיבוץ. הוסיפו מילים או הפעילו «השלם אקראי לגיל 10».',
+      `אין מילים לשיבוץ. הוסיפו מילים או הפעילו «${AGE10_FILL_LABEL}».`,
       skips,
     )
   }

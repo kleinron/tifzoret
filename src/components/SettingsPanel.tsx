@@ -6,6 +6,8 @@ import {
 } from '../generator/directions.ts'
 import type { FieldIssue } from '../generator/wordLimits.ts'
 import {
+  AGE10_FILL_LABEL,
+  age10FillHint,
   growBoardCtaLabel,
   MAX_BANK_WORDS,
   MAX_WORD_LENGTH,
@@ -158,9 +160,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
               checked={props.randomAge10}
               onChange={(e) => props.onRandomAge10(e.target.checked)}
             />
-            <span>השלם אקראי לגיל 10</span>
+            <span>{AGE10_FILL_LABEL}</span>
           </label>
-          <p className="hint">מוסיף מילים ידידותיות לגיל ~10 מקובץ מובנה, בלי רשת.</p>
+          <p className="hint">{age10FillHint(props.gridSize, props.bank.length)}</p>
           <label className="toggle">
             <input
               type="checkbox"
