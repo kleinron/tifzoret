@@ -5,8 +5,8 @@ export type WordBankProps = {
 
 export function WordBank(props: WordBankProps) {
   return (
-    <aside className="panel word-bank" aria-label="בנק מילים">
-      <h2>בנק מילים</h2>
+    <aside className="panel word-bank" aria-label="מחסן מילים">
+      <h2>מחסן מילים</h2>
       {props.words.length === 0 ? (
         <p className="hint">המילים יופיעו כאן אחרי יצירת התפזורת.</p>
       ) : (

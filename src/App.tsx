@@ -186,7 +186,7 @@ export default function App() {
         }
         if (result.skippedOverCapacity.length) {
           skipped.push(
-            `לא נוספו כי הבנק מוגבל ל־${MAX_BANK_WORDS} מילים: ${result.skippedOverCapacity.join(', ')}`,
+            `לא נוספו כי המחסן מוגבל ל־${MAX_BANK_WORDS} מילים: ${result.skippedOverCapacity.join(', ')}`,
           )
         }
         if (result.fillCappedAtMax) {
