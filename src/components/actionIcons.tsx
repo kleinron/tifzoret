@@ -2,6 +2,34 @@ type IconProps = {
   className?: string
 }
 
+/**
+ * One arrow, rotated so every compass direction shares stroke weight,
+ * head shape, and optical size. 0° points up.
+ */
+export function DirectionArrow({
+  rotation,
+  className,
+}: IconProps & { rotation: number }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M12 18.8V6.7M7 10.2 12 5.2l5 5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        transform={`rotate(${rotation} 12 12)`}
+      />
+    </svg>
+  )
+}
+
 export function PrinterIcon({ className = 'btn-icon' }: IconProps) {
   return (
     <svg
