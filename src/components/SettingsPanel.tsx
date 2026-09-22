@@ -1,7 +1,13 @@
 import type { ClipboardEvent } from 'react'
-import type { Direction, DirectionId } from '../generator/directions.ts'
+import {
+  directionArrow,
+  type Direction,
+  type DirectionId,
+} from '../generator/directions.ts'
 import type { FieldIssue } from '../generator/wordLimits.ts'
 import {
+  AGE10_FILL_LABEL,
+  age10FillHint,
   growBoardCtaLabel,
   MAX_BANK_WORDS,
   MAX_WORD_LENGTH,
@@ -57,14 +63,17 @@ export function SettingsPanel(props: SettingsPanelProps) {
           <p className="hint">סמנו כל כיוון שבו מותר לשבץ מילים.</p>
           <ul className="direction-list">
             {props.directions.map((dir) => (
-              <li key={dir.id}>
-                <label>
+              <li key={dir.id} className={`direction-item direction-${dir.id}`}>
+                <label title={dir.label}>
                   <input
                     type="checkbox"
                     checked={props.enabled.has(dir.id)}
                     onChange={() => props.onToggleDirection(dir.id)}
+                    aria-label={dir.label}
                   />
-                  <span>{dir.label}</span>
+                  <span className="direction-arrow" dir="ltr" aria-hidden="true">
+                    {directionArrow(dir.dr, dir.dc)}
+                  </span>
                 </label>
               </li>
             ))}
@@ -151,9 +160,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
               checked={props.randomAge10}
               onChange={(e) => props.onRandomAge10(e.target.checked)}
             />
-            <span>השלם אקראי לגיל 10</span>
+            <span>{AGE10_FILL_LABEL}</span>
           </label>
-          <p className="hint">מוסיף מילים ידידותיות לגיל ~10 מקובץ מובנה, בלי רשת.</p>
+          <p className="hint">{age10FillHint(props.gridSize, props.bank.length)}</p>
           <label className="toggle">
             <input
               type="checkbox"

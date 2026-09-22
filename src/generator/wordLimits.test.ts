@@ -8,6 +8,8 @@ import { filterBankWords, HEBREW_LETTERS } from './hebrew.ts'
 import {
   capBankWords,
   editorValidation,
+  AGE10_FILL_LABEL,
+  age10FillHint,
   extraFillCount,
   growBoardCtaLabel,
   looksLikeWordList,
@@ -145,6 +147,19 @@ describe('max 50 words in the bank', () => {
     expect(extraFillCount(12, MAX_BANK_WORDS)).toBe(0)
     expect(extraFillCount(20, MAX_BANK_WORDS - 1)).toBeLessThanOrEqual(1)
   })
+
+  it('describes how many age-10 words Generate would add, or that the board is already full', () => {
+    const extra = extraFillCount(12, 1)
+    expect(extra).toBeGreaterThan(0)
+    expect(age10FillHint(12, 1)).toBe(
+      `יוסיף עוד ${extra} מילים ידידותיות לגיל ~10`,
+    )
+    expect(age10FillHint(12, 13)).toBe('כבר ביעד ללוח הזה — לא יתווספו מילים')
+    expect(age10FillHint(12, MAX_BANK_WORDS)).toBe(
+      'כבר ביעד ללוח הזה — לא יתווספו מילים',
+    )
+    expect(age10FillHint(12, 1)).not.toMatch(/בלי רשת|offline|השלם אקראי/)
+  })
 })
 
 describe('paste / generate helpers', () => {
@@ -248,6 +263,16 @@ describe('SettingsPanel validation UI', () => {
     expect(html).toContain('1 / 50 מילים')
     expect(html).toContain('עד 16 אותיות')
     expect(html).toContain('עד 50 מילים')
+    expect(html).toContain(AGE10_FILL_LABEL)
+    expect(html).toContain(age10FillHint(12, 1))
+    expect(html).not.toContain('השלם אקראי')
+    expect(html).not.toContain('בלי רשת')
+    expect(html).toContain('aria-label="מימין לשמאל"')
+    expect(html).toContain('title="מימין לשמאל"')
+    expect(html).toContain('direction-arrow')
+    expect(html).toContain('←')
+    expect(html).toContain('↙')
+    expect(html).not.toContain('>מימין לשמאל<')
   })
 
   it('renders the 16-letter rejection in red without a grow CTA and disables add/generate', () => {
