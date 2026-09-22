@@ -1,5 +1,9 @@
 import type { ClipboardEvent } from 'react'
-import type { Direction, DirectionId } from '../generator/directions.ts'
+import {
+  directionArrow,
+  type Direction,
+  type DirectionId,
+} from '../generator/directions.ts'
 import type { FieldIssue } from '../generator/wordLimits.ts'
 import {
   growBoardCtaLabel,
@@ -57,14 +61,17 @@ export function SettingsPanel(props: SettingsPanelProps) {
           <p className="hint">סמנו כל כיוון שבו מותר לשבץ מילים.</p>
           <ul className="direction-list">
             {props.directions.map((dir) => (
-              <li key={dir.id}>
-                <label>
+              <li key={dir.id} className={`direction-item direction-${dir.id}`}>
+                <label title={dir.label}>
                   <input
                     type="checkbox"
                     checked={props.enabled.has(dir.id)}
                     onChange={() => props.onToggleDirection(dir.id)}
+                    aria-label={dir.label}
                   />
-                  <span>{dir.label}</span>
+                  <span className="direction-arrow" dir="ltr" aria-hidden="true">
+                    {directionArrow(dir.dr, dir.dc)}
+                  </span>
                 </label>
               </li>
             ))}

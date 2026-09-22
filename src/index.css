@@ -199,17 +199,103 @@ legend {
 
 .direction-list {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.15rem 0.55rem;
+  direction: ltr;
+  unicode-bidi: isolate;
+  grid-template-columns: repeat(3, 2.55rem);
+  grid-template-areas:
+    'nw n ne'
+    'w mid e'
+    'sw s se';
+  gap: 0.35rem;
+  justify-content: start;
+  width: max-content;
+}
+
+.direction-list::before {
+  content: '';
+  grid-area: mid;
+  align-self: center;
+  justify-self: center;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: #cbb996;
 }
 
 .direction-list li + li {
   margin-top: 0;
 }
 
-.direction-list label span {
-  font-size: 0.86rem;
-  line-height: 1.25;
+.direction-rtl {
+  grid-area: w;
+}
+.direction-ltr {
+  grid-area: e;
+}
+.direction-btt {
+  grid-area: n;
+}
+.direction-ttb {
+  grid-area: s;
+}
+.direction-brtl {
+  grid-area: nw;
+}
+.direction-bltr {
+  grid-area: ne;
+}
+.direction-trbl {
+  grid-area: sw;
+}
+.direction-tlbr {
+  grid-area: se;
+}
+
+.direction-list label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.55rem;
+  height: 2.55rem;
+  margin: 0;
+  border: 1.5px solid #d2c3a8;
+  border-radius: 12px;
+  background: #fff;
+  color: #3d3428;
+  cursor: pointer;
+}
+
+.direction-list label:hover {
+  border-color: #9a4a28;
+}
+
+.direction-list label:has(input:checked) {
+  background: #9a4a28;
+  border-color: #9a4a28;
+  color: #fffdf8;
+}
+
+.direction-list label:focus-within {
+  outline: 2px solid #9a4a28;
+  outline-offset: 2px;
+}
+
+.direction-list input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  border: 0;
+}
+
+.direction-arrow {
+  font-size: 1.35rem;
+  line-height: 1;
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 textarea::placeholder {
@@ -244,7 +330,6 @@ textarea::placeholder {
   margin-top: 0.2rem;
 }
 
-.direction-list label,
 .toggle {
   display: flex;
   gap: 0.45rem;

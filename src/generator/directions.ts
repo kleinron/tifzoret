@@ -57,6 +57,23 @@ export const DIRECTIONS: readonly Direction[] = [
 
 export const DEFAULT_DIRECTION_IDS: readonly DirectionId[] = ['rtl', 'ttb', 'trbl']
 
+/**
+ * Visual arrow for a placement vector.
+ * Grid row grows downward and column grows to the right, so the glyph
+ * points the way a word is read. These arrows are not bidi-mirrored.
+ */
+export function directionArrow(dr: number, dc: number): string {
+  if (dr === -1 && dc === -1) return '↖'
+  if (dr === -1 && dc === 0) return '↑'
+  if (dr === -1 && dc === 1) return '↗'
+  if (dr === 0 && dc === -1) return '←'
+  if (dr === 0 && dc === 1) return '→'
+  if (dr === 1 && dc === -1) return '↙'
+  if (dr === 1 && dc === 0) return '↓'
+  if (dr === 1 && dc === 1) return '↘'
+  throw new Error(`Unsupported direction vector ${dr},${dc}`)
+}
+
 export function directionsById(
   ids: readonly DirectionId[],
 ): Direction[] {

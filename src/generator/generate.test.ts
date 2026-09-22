@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { KID_WORDS } from '../data/kidWords.ts'
-import { DEFAULT_DIRECTION_IDS, DIRECTIONS } from './directions.ts'
+import { DEFAULT_DIRECTION_IDS, DIRECTIONS, directionArrow } from './directions.ts'
 import {
   generatePuzzle,
   pickDiverseWords,
@@ -23,6 +23,22 @@ import {
 describe('default directions', () => {
   it('enables RTL, top-to-bottom, and top-right to bottom-left', () => {
     expect([...DEFAULT_DIRECTION_IDS]).toEqual(['rtl', 'ttb', 'trbl'])
+  })
+
+  it('maps each placement vector to the matching visual arrow', () => {
+    const arrows = Object.fromEntries(
+      DIRECTIONS.map((dir) => [dir.id, directionArrow(dir.dr, dir.dc)]),
+    )
+    expect(arrows).toEqual({
+      rtl: '←',
+      ttb: '↓',
+      btt: '↑',
+      ltr: '→',
+      trbl: '↙',
+      tlbr: '↘',
+      brtl: '↖',
+      bltr: '↗',
+    })
   })
 })
 

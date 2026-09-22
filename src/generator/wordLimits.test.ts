@@ -248,6 +248,12 @@ describe('SettingsPanel validation UI', () => {
     expect(html).toContain('1 / 50 מילים')
     expect(html).toContain('עד 16 אותיות')
     expect(html).toContain('עד 50 מילים')
+    expect(html).toContain('aria-label="מימין לשמאל"')
+    expect(html).toContain('title="מימין לשמאל"')
+    expect(html).toContain('direction-arrow')
+    expect(html).toContain('←')
+    expect(html).toContain('↙')
+    expect(html).not.toContain('>מימין לשמאל<')
   })
 
   it('renders the 16-letter rejection in red without a grow CTA and disables add/generate', () => {
