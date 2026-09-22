@@ -53,11 +53,11 @@ export function messageTooLongForGrid(gridSize: number): string {
 }
 
 export function messageBankFull(): string {
-  return `עד ${MAX_BANK_WORDS} מילים`
+  return `עד ${MAX_BANK_WORDS} מילים במחסן`
 }
 
 export function messageRandomFillCapped(): string {
-  return `השלמה אקראית הופסקה במקסימום ${MAX_BANK_WORDS} מילים.`
+  return `השלמה אקראית הופסקה במקסימום ${MAX_BANK_WORDS} מילים במחסן.`
 }
 
 /** Setting name. Fill runs on «צור», not as its own action. */

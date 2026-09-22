@@ -23,7 +23,7 @@ describe('share popover (designer lock)', () => {
     expect(html).toContain('class="outline topbar-btn topbar-share"')
     expect(html).toContain('btn-icon')
     expect(html).toContain('aria-hidden="true"')
-    expect(html).not.toContain('כלול מילים')
+    expect(html).not.toContain('כלול מחסן מילים')
   })
 
   it('opens a small panel with both include checkboxes on and העתק קישור', () => {
@@ -36,7 +36,7 @@ describe('share popover (designer lock)', () => {
         onCopy: () => undefined,
       }),
     )
-    expect(html).toContain('כלול מילים')
+    expect(html).toContain('כלול מחסן מילים')
     expect(html).toContain('כלול הגדרות')
     expect(html).toContain('העתק קישור')
     expect(html.match(/type="checkbox"/g)?.length).toBe(2)

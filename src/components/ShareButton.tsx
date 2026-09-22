@@ -32,7 +32,7 @@ export function SharePopover(props: SharePopoverProps) {
           checked={props.includeWords}
           onChange={(e) => props.onIncludeWords(e.target.checked)}
         />
-        <span>כלול מילים</span>
+        <span>כלול מחסן מילים</span>
       </label>
       <label className="toggle">
         <input
