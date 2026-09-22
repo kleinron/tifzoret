@@ -270,8 +270,13 @@ describe('SettingsPanel validation UI', () => {
     expect(html).toContain('aria-label="מימין לשמאל"')
     expect(html).toContain('title="מימין לשמאל"')
     expect(html).toContain('direction-arrow')
-    expect(html).toContain('←')
-    expect(html).toContain('↙')
+    expect(html).toContain('dir="ltr"')
+    const arrowPath = 'M12 18.8V6.7M7 10.2 12 5.2l5 5'
+    expect(html.split(arrowPath).length - 1).toBe(8)
+    expect(html).toContain('rotate(270 12 12)')
+    expect(html).toContain('rotate(225 12 12)')
+    expect(html).not.toContain('←')
+    expect(html).not.toContain('↙')
     expect(html).not.toContain('>מימין לשמאל<')
   })
 

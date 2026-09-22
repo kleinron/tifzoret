@@ -58,19 +58,20 @@ export const DIRECTIONS: readonly Direction[] = [
 export const DEFAULT_DIRECTION_IDS: readonly DirectionId[] = ['rtl', 'ttb', 'trbl']
 
 /**
- * Visual arrow for a placement vector.
- * Grid row grows downward and column grows to the right, so the glyph
- * points the way a word is read. These arrows are not bidi-mirrored.
+ * Clockwise degrees from up for one shared arrow icon.
+ * Grid row grows downward and column grows to the right, so the icon
+ * points the way a word is read. Rotation is applied inside an LTR SVG,
+ * so the compass is not bidi-mirrored.
  */
-export function directionArrow(dr: number, dc: number): string {
-  if (dr === -1 && dc === -1) return '↖'
-  if (dr === -1 && dc === 0) return '↑'
-  if (dr === -1 && dc === 1) return '↗'
-  if (dr === 0 && dc === -1) return '←'
-  if (dr === 0 && dc === 1) return '→'
-  if (dr === 1 && dc === -1) return '↙'
-  if (dr === 1 && dc === 0) return '↓'
-  if (dr === 1 && dc === 1) return '↘'
+export function directionArrowRotation(dr: number, dc: number): number {
+  if (dr === -1 && dc === -1) return 315
+  if (dr === -1 && dc === 0) return 0
+  if (dr === -1 && dc === 1) return 45
+  if (dr === 0 && dc === -1) return 270
+  if (dr === 0 && dc === 1) return 90
+  if (dr === 1 && dc === -1) return 225
+  if (dr === 1 && dc === 0) return 180
+  if (dr === 1 && dc === 1) return 135
   throw new Error(`Unsupported direction vector ${dr},${dc}`)
 }
 

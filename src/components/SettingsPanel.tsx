@@ -1,6 +1,7 @@
 import type { ClipboardEvent } from 'react'
+import { DirectionArrow } from './actionIcons.tsx'
 import {
-  directionArrow,
+  directionArrowRotation,
   type Direction,
   type DirectionId,
 } from '../generator/directions.ts'
@@ -72,7 +73,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     aria-label={dir.label}
                   />
                   <span className="direction-arrow" dir="ltr" aria-hidden="true">
-                    {directionArrow(dir.dr, dir.dc)}
+                    <DirectionArrow
+                      rotation={directionArrowRotation(dir.dr, dir.dc)}
+                    />
                   </span>
                 </label>
               </li>

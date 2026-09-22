@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { KID_WORDS } from '../data/kidWords.ts'
-import { DEFAULT_DIRECTION_IDS, DIRECTIONS, directionArrow } from './directions.ts'
+import { DEFAULT_DIRECTION_IDS, DIRECTIONS, directionArrowRotation } from './directions.ts'
 import {
   generatePuzzle,
   pickDiverseWords,
@@ -25,19 +25,19 @@ describe('default directions', () => {
     expect([...DEFAULT_DIRECTION_IDS]).toEqual(['rtl', 'ttb', 'trbl'])
   })
 
-  it('maps each placement vector to the matching visual arrow', () => {
+  it('maps each placement vector to one shared arrow rotation', () => {
     const arrows = Object.fromEntries(
-      DIRECTIONS.map((dir) => [dir.id, directionArrow(dir.dr, dir.dc)]),
+      DIRECTIONS.map((dir) => [dir.id, directionArrowRotation(dir.dr, dir.dc)]),
     )
     expect(arrows).toEqual({
-      rtl: '←',
-      ttb: '↓',
-      btt: '↑',
-      ltr: '→',
-      trbl: '↙',
-      tlbr: '↘',
-      brtl: '↖',
-      bltr: '↗',
+      rtl: 270,
+      ttb: 180,
+      btt: 0,
+      ltr: 90,
+      trbl: 225,
+      tlbr: 135,
+      brtl: 315,
+      bltr: 45,
     })
   })
 })
