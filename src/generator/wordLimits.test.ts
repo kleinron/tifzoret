@@ -120,7 +120,7 @@ describe('max 50 words in the bank', () => {
     expect(result.nextBank).toHaveLength(MAX_BANK_WORDS)
     const ui = editorValidation(bank, extra.join('\n'), 12)
     expect(ui.messages).toContain(messageBankFull())
-    expect(ui.messages).toContain('עד 50 מילים')
+    expect(ui.messages).toContain('עד 50 מילים במחסן')
     expect(ui.inputValid).toBe(false)
     expect(ui.canAdd).toBe(false)
   })
@@ -260,9 +260,9 @@ describe('SettingsPanel validation UI', () => {
     expect(html).toContain('dir="rtl"')
     expect(html).not.toContain('role="alert"')
     expect(html).toContain('disabled=""')
-    expect(html).toContain('1 / 50 מילים')
+    expect(html).toContain('1 / 50 במחסן מילים')
     expect(html).toContain('עד 16 אותיות')
-    expect(html).toContain('עד 50 מילים')
+    expect(html).toContain('עד 50 מילים במחסן')
     expect(html).toContain(AGE10_FILL_LABEL)
     expect(html).toContain(age10FillHint(12, 1))
     expect(html).not.toContain('השלם אקראי')
@@ -295,7 +295,7 @@ describe('SettingsPanel validation UI', () => {
     expect(html).toContain('עד 16 אותיות')
     expect(html).toContain('field-message-danger')
     expect(html).not.toContain('הגדל לוח')
-    expect(html).toMatch(/הוסף לרשימה[\s\S]*disabled/)
+    expect(html).toMatch(/הוסף למחסן מילים[\s\S]*disabled/)
     expect(html).toMatch(/צור תפזורת[\s\S]*disabled|disabled[\s\S]*צור תפזורת/)
   })
 
@@ -312,7 +312,7 @@ describe('SettingsPanel validation UI', () => {
         generateDisabled: !ui.inputValid,
       }),
     )
-    expect(html).toMatch(/<button[^>]*disabled[^>]*>הוסף לרשימה/)
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>הוסף למחסן מילים/)
     expect(html).not.toMatch(/<button[^>]*disabled[^>]*>צור תפזורת/)
   })
 })

@@ -84,10 +84,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
         </fieldset>
 
         <fieldset className="block">
-          <legend>מילים</legend>
+          <legend>מחסן מילים</legend>
           <p className="hint">
             מילה בכל שורה או מופרדות בפסיק. ניקוד ורווחים מוסרים. עד{' '}
-            {MAX_WORD_LENGTH} אותיות, עד {MAX_BANK_WORDS} מילים.
+            {MAX_WORD_LENGTH} אותיות, עד {MAX_BANK_WORDS} מילים במחסן.
           </p>
           <textarea
             value={props.draft}
@@ -130,10 +130,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
             onClick={props.onAddWords}
             disabled={props.addDisabled}
           >
-            הוסף לרשימה
+            הוסף למחסן מילים
           </button>
           <p className={atLimit ? 'bank-count at-limit' : 'bank-count'}>
-            {props.bank.length} / {props.bankLimit} מילים
+            {props.bank.length} / {props.bankLimit} במחסן מילים
           </p>
           {props.bank.length > 0 ? (
             <ul className="chip-list">
@@ -151,7 +151,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               ))}
             </ul>
           ) : (
-            <p className="hint">אין מילים ברשימה עדיין.</p>
+            <p className="hint">מחסן המילים ריק עדיין.</p>
           )}
         </fieldset>
 
