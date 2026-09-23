@@ -421,6 +421,16 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
     )
   }
 
+  const freeCells = size * size - imageCount * IMAGE_BLOCK_SIZE * IMAGE_BLOCK_SIZE
+  const shortest = words.reduce((min, word) => Math.min(min, word.length), words[0]!.length)
+  if (freeCells < shortest) {
+    return fail(
+      'Not enough open cells left for the words once the pictures are placed.',
+      'אין מספיק משבצות פנויות למילים אחרי התמונות. הקטינו את מספר התמונות או הגדילו את הלוח.',
+      skips,
+    )
+  }
+
   const alphabet = HEBREW_LETTERS
   const maxPlacement = request.maxPlacementAttempts ?? DEFAULT_MAX_PLACEMENT
   const maxRepair = request.maxRepairAttempts ?? DEFAULT_MAX_REPAIR

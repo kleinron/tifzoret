@@ -362,7 +362,7 @@ describe('generatePuzzle uniqueness', () => {
     expect(result.errorHe).toContain('לכל היותר 4')
   })
 
-  it('asks for fewer images when pictures cover the whole board', () => {
+  it('fails in Hebrew when pictures leave no room for a word', () => {
     const result = generatePuzzle({
       size: 8,
       userWords: ['שמש'],
@@ -371,12 +371,12 @@ describe('generatePuzzle uniqueness', () => {
       randomAge10Fill: false,
       imageCount: 4,
       seed: 1,
-      maxPlacementAttempts: 1,
-      maxRepairAttempts: 1,
     })
     expect(result.ok).toBe(false)
     if (result.ok) throw new Error('expected failure')
-    expect(result.errorHe).toMatch(/פחות תמונות/)
+    expect(result.errorHe).toBe(
+      'אין מספיק משבצות פנויות למילים אחרי התמונות. הקטינו את מספר התמונות או הגדילו את הלוח.',
+    )
   })
 
   it('fails when no directions are selected', () => {
