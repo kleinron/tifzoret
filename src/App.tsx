@@ -10,6 +10,11 @@ import {
   type DirectionId,
 } from './generator/directions.ts'
 import { generatePuzzle, lettersAlong } from './generator/generate.ts'
+import {
+  clampImageCount,
+  DEFAULT_IMAGE_COUNT,
+  type ImageBlock,
+} from './generator/imageBlocks.ts'
 import { parseWordList } from './generator/hebrew.ts'
 import type { Cell } from './generator/verify.ts'
 import {
@@ -83,6 +88,15 @@ export default function App() {
   const [gridSize, setGridSize] = useState(() =>
     boot?.settings ? clampGridSize(boot.settings.gridSize) : 12,
   )
+  const [imageCount, setImageCount] = useState(() =>
+    boot?.settings
+      ? clampImageCount(
+          boot.settings.imageCount ?? 0,
+          clampGridSize(boot.settings.gridSize),
+        )
+      : DEFAULT_IMAGE_COUNT,
+  )
+  const [imageBlocks, setImageBlocks] = useState<ImageBlock[]>([])
   const [fontSize, setFontSize] = useState(() =>
     boot?.settings ? clamp(boot.settings.fontSize, 12, 28, 18) : 18,
   )
@@ -135,9 +149,15 @@ export default function App() {
     applyIntake(incoming)
   }
 
+  const applyGridSize = (value: number) => {
+    const next = clampGridSize(value)
+    setGridSize(next)
+    setImageCount((current) => clampImageCount(current, next))
+  }
+
   const growBoard = (size: number) => {
     const nextSize = clampGridSize(size)
-    setGridSize(nextSize)
+    applyGridSize(nextSize)
     applyIntake(parseWordList(draft), nextSize)
   }
 
@@ -158,6 +178,7 @@ export default function App() {
           directions: [...enabledDirs],
           noFinalLetters: noFinals,
           randomAge10Fill: reshuffle ? false : randomAge10,
+          imageCount,
         })
         setBusy(false)
         if (!result.ok) {
@@ -197,12 +218,13 @@ export default function App() {
         }
         setNotes(skipped)
         setGrid(result.grid)
+        setImageBlocks(result.imageBlocks)
         setPuzzleWords(result.words)
         setFoundWords(new Set())
         setFoundCells(new Map())
       }, 30)
     },
-    [enabledDirs, gridSize, noFinals, randomAge10],
+    [enabledDirs, gridSize, imageCount, noFinals, randomAge10],
   )
 
   const onPathComplete = (cells: Cell[]) => {
@@ -247,6 +269,7 @@ export default function App() {
               fontSize,
               randomAge10,
               noFinals,
+              imageCount,
             }}
           />
           <button type="button" className="outline topbar-btn topbar-print" onClick={() => window.print()}>
@@ -278,12 +301,16 @@ export default function App() {
           noFinals={noFinals}
           onNoFinals={setNoFinals}
           gridSize={gridSize}
-          onGridSize={(value) => setGridSize(clampGridSize(value))}
+          onGridSize={applyGridSize}
+          imageCount={imageCount}
+          onImageCount={(value) => setImageCount(clampImageCount(value, gridSize))}
           fontSize={fontSize}
           onFontSize={(value) => setFontSize(clamp(value, 12, 28, 18))}
           busy={busy}
           onGenerate={() => runGenerate(mergeDraftIntoBank(), false)}
           onReshuffle={() =>
+            // Keeps the current word list (no new age-10 draw) and re-rolls
+            // letter placement and image positions. Image count stays.
             runGenerate(puzzleWords.length ? puzzleWords : bank, puzzleWords.length > 0)
           }
         />
@@ -303,6 +330,7 @@ export default function App() {
               grid={grid}
               fontSize={fontSize}
               foundCells={foundCells}
+              imageBlocks={imageBlocks}
               onPathComplete={onPathComplete}
             />
           ) : (

@@ -14,9 +14,13 @@ Live (GitHub Pages): https://kleinron.github.io/tifzoret/
 4. אפשרויות:
    - **מילוי אוטומטי לגיל ~10** — בלחיצת «צור» משלים מילים ידידותיות לילדים מקובץ מובנה (`src/data/kidWords.ts`), בלי רשת.
    - **ללא אותיות סופיות** — מילים עם ם / ן / ץ / ף / ך לא ייכנסו, והאותיות הסופיות לא יופיעו בריבוע.
-5. בחרו גודל רשת (8–20) וגודל גופן (ברירת מחדל 18pt).
-6. **צור תפזורת** או **ערבב מחדש**. כל מילת מחסן מופיעה **פעם אחת בלבד** בכיוונים הפעילים; אם נוצרת הופעה מקרית, המחולל מערבב שוב.
-7. **הדפס** — ההגדרות מוסתרות, והדף מכיל את הריבוע ואת מחסן המילים. סימוני פתרון לא מודפסים.
+5. בחרו גודל רשת (8–20), **תמונות על הלוח** וגודל גופן (ברירת מחדל 18pt).
+   - ברירת המחדל היא **תמונה אחת**. 0 מכבה את התמונות.
+   - כל תמונה תופסת ריבוע **4×4** בלי אותיות. המקסימום הוא כמה ריבועים כאלה נכנסים בלי חפיפה (למשל 9 בלוח 12×12, 4 בלוח 8×8). הקטנת הלוח חותכת את המספר אוטומטית. אם התמונות לא משאירות מקום למילה (למשל 4 תמונות על לוח 8×8), היצירה נכשלת בעברית.
+   - הציורים (חתול, כדור, שמש, פרח, דג, כוכב ועוד) הם SVG מקוריים בתוך האפליקציה, בלי רשת.
+   - **המיקום והציור מוגרלים מחדש** בכל «צור תפזורת» ובכל «ערבב מחדש», כמו שיבוץ המילים. מספר התמונות נשאר כפי שנבחר, כמו הכיוונים. «ערבב מחדש» לא מגריל מחדש את מילות גיל 10 שכבר נוספו.
+6. **צור תפזורת** או **ערבב מחדש**. כל מילת מחסן מופיעה **פעם אחת בלבד** בכיוונים הפעילים; משבצות התמונה חסומות ולא נספרות כאות. אם נוצרת הופעה מקרית, המחולל מערבב שוב.
+7. **הדפס** — ההגדרות מוסתרות, והדף מכיל את הריבוע (כולל התמונות) ואת מחסן המילים. סימוני פתרון לא מודפסים.
 8. **שתף** — כפתור מתאר ליד ההדפסה. בחלון הקטן סמנו **כלול מחסן מילים** ו/או **כלול הגדרות** (ברירת מחדל: שניהם) ולחצו **העתק קישור**. מופיעה הודעה קצרה «הועתק».
 
 ## Usage
@@ -27,9 +31,12 @@ Live (GitHub Pages): https://kleinron.github.io/tifzoret/
 4. Optional:
    - **Automatic age-~10 fill** — on Generate, extra kid-friendly words from the bundled corpus (offline).
    - **No final letters** — drop words containing ם ן ץ ף ך; those sofit letters also stay out of the grid.
-5. Grid size 8–20. Font size defaults to **18pt** (Assistant / Heebo).
-6. **Generate** / **Reshuffle**. Each word in the store is placed **exactly once**. After random fill, the generator verifies there is no accidental second copy along enabled directions and retries until that holds (or fails clearly).
-7. **Print** hides settings; print shows the grid and word store on one A4 page, without solve highlights.
+5. Grid size 8–20. **Pictures on the board** default to **1** (0 turns them off). Font size defaults to **18pt** (Assistant / Heebo).
+   - Each picture occupies a **4×4** block that letters cannot use. The maximum is how many non-overlapping 4×4 blocks fit (9 on 12×12, 4 on 8×8). Shrinking the grid clamps the count. If the pictures leave no room for a word (4 pictures on an 8×8 board cover it), generation fails with a clear Hebrew message.
+   - Drawings (cat, ball, sun, flower, fish, star, and more) are original SVGs embedded in the app (`src/images`), not loaded from the network.
+   - **Position and which drawing are re-rolled** on Generate and on Reshuffle, same as word placement. The count is a setting, like directions, and is not re-rolled. Reshuffle does not draw a new age-10 word set.
+6. **Generate** / **Reshuffle**. Each word in the store is placed **exactly once**. Image cells are blocked: they are not filled with letters, and a word span that enters one does not count. After random fill, the generator verifies there is no accidental second copy along enabled directions and retries until that holds (or fails clearly, in Hebrew, including when the pictures themselves cannot be placed).
+7. **Print** hides settings; print shows the grid (including the pictures) and word store on one A4 page, without solve highlights.
 8. **Share** (outline button next to Print) opens a popover: **Include word store** / **Include settings** (both on by default), then **Copy link**. A short «הועתק» toast confirms the clipboard write.
 
 ## Share links
@@ -39,7 +46,7 @@ Opening the app with **no `p` query param** uses built-in defaults.
 Shared URLs look like `https://kleinron.github.io/tifzoret/?p=…`. The payload is a **compressed binary bitstream** encoded in **base62** (`0-9A-Za-z`):
 
 - Base62 is URL-safe without `-`, `_`, or `=` so the param never needs percent-encoding and survives chat copy-paste better than base64url. It is ~1% less dense than base64url; Hebrew packing dominates the savings.
-- Hebrew words use **5-bit indices** into a **27-letter** alphabet (22 regular letters + 5 sofit). Finals are kept distinct after nikud/space normalization, so `שלום` round-trips. The solved grid is **not** stored — the recipient regenerates from words and/or settings (directions, board size, font, age-10 fill, no-finals).
+- Hebrew words use **5-bit indices** into a **27-letter** alphabet (22 regular letters + 5 sofit). Finals are kept distinct after nikud/space normalization, so `שלום` round-trips. The solved grid is **not** stored — the recipient regenerates from words and/or settings (directions, board size, font, age-10 fill, no-finals, **image count**). Image positions are not in the link; they are drawn again on generate. Version 1 links (from before pictures) open with **0** images. A fresh visit, with no `p`, still defaults to **1**.
 - Checkboxes control which sections are packed: words only, settings only, or both.
 
 ## Develop

@@ -76,6 +76,13 @@ describe('print stylesheet', () => {
     expect(print).toMatch(/\.word-bank\s*\{[^}]*break-inside:\s*avoid/)
   })
 
+  it('keeps board images visible when printing', () => {
+    expect(print).toMatch(/\.cell-image/)
+    expect(print).toMatch(/\.board-image/)
+    expect(print).toMatch(/print-color-adjust:\s*exact/)
+    expect(print).not.toMatch(/\.cell-image\s*\{[^}]*display:\s*none/)
+  })
+
   it('centers letters in cells', () => {
     expect(print).toMatch(/text-align:\s*center/)
     expect(print).toMatch(/justify-content:\s*center/)
@@ -100,5 +107,28 @@ describe('WordGrid print hooks', () => {
     expect(html).toMatch(/--grid-n:\s*2/)
     expect(html).toContain('cell-letter')
     expect(html).toContain('dir="ltr"')
+  })
+
+  it('prints an embedded picture across a 4×4 block', () => {
+    const grid = Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 'א'))
+    const html = renderToStaticMarkup(
+      createElement(WordGrid, {
+        grid,
+        fontSize: 18,
+        foundCells: new Map(),
+        onPathComplete: () => undefined,
+        imageBlocks: [{ imageId: 'cat', row: 1, col: 2 }],
+      }),
+    )
+    expect(html).toContain('<svg')
+    expect(html).toContain('board-image')
+    expect(html).toContain('cell-image')
+    expect(html).toContain('תמונה: חתול')
+    expect(html).toContain('data-image="cat"')
+    expect(html).toContain('grid-row:2 / span 4')
+    expect(html).toContain('grid-column:3 / span 4')
+    expect(html.match(/data-cell=/g)?.length).toBe(64 - 15)
+    expect(html).not.toContain('http://')
+    expect(html).not.toContain('https://')
   })
 })

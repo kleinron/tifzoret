@@ -5,6 +5,7 @@ import {
   type Direction,
   type DirectionId,
 } from '../generator/directions.ts'
+import { clampImageCount, maxImageBlocks } from '../generator/imageBlocks.ts'
 import type { FieldIssue } from '../generator/wordLimits.ts'
 import {
   AGE10_FILL_LABEL,
@@ -36,6 +37,8 @@ export type SettingsPanelProps = {
   onNoFinals: (value: boolean) => void
   gridSize: number
   onGridSize: (value: number) => void
+  imageCount: number
+  onImageCount: (value: number) => void
   fontSize: number
   onFontSize: (value: number) => void
   busy: boolean
@@ -54,6 +57,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
   const atLimit = props.bank.length >= props.bankLimit
   const invalid = props.issues.length > 0
   const generateOff = props.busy || props.generateDisabled
+  const maxImages = maxImageBlocks(props.gridSize)
+  const imageCount = clampImageCount(props.imageCount, props.gridSize)
 
   return (
     <aside className="panel settings no-print" aria-label="הגדרות">
@@ -207,6 +212,35 @@ export function SettingsPanel(props: SettingsPanelProps) {
               />
             </div>
           </label>
+          <label className="range">
+            <span>תמונות על הלוח: {imageCount}</span>
+            <div className="size-row">
+              <input
+                type="range"
+                min={0}
+                max={maxImages}
+                step={1}
+                value={imageCount}
+                onChange={(e) => props.onImageCount(Number(e.target.value))}
+              />
+              <input
+                type="number"
+                min={0}
+                max={maxImages}
+                step={1}
+                value={imageCount}
+                onChange={(e) => {
+                  const n = Number(e.target.value)
+                  if (n >= 0 && n <= maxImages) props.onImageCount(n)
+                }}
+                aria-label="תמונות על הלוח"
+              />
+            </div>
+          </label>
+          <p className="hint">
+            כל תמונה מכסה 4×4 משבצות בלי אותיות. עד {maxImages} בלוח הזה, בלי
+            חפיפה. המיקום והציור מוגרלים מחדש ב«צור תפזורת» וב«ערבב מחדש».
+          </p>
           <label className="range">
             <span>גודל גופן: {props.fontSize}pt</span>
             <div className="size-row">

@@ -7,6 +7,7 @@ import {
   buildShareUrl,
   decodeSharePayload,
   encodeSharePayload,
+  MAX_SHARE_IMAGE_COUNT,
   PACK_LETTERS,
   payloadFromSearch,
   SHARE_QUERY_PARAM,
@@ -18,12 +19,60 @@ import {
 
 const WORDS = ['שמש', 'ירח', 'כוכב', 'שלום', 'כדור']
 
+/** Rebuild a version-1 payload (1-bit settings pad, no image count). */
+function legacyVersion1Bytes(options: {
+  directionsMask: number
+  gridOffset: number
+  fontOffset: number
+  words?: string[]
+}): Uint8Array {
+  const bits: number[] = []
+  const write = (value: number, width: number) => {
+    for (let i = width - 1; i >= 0; i--) bits.push((value >>> i) & 1)
+  }
+  write(1, 4)
+  write(options.words ? 1 : 0, 1)
+  write(1, 1)
+  write(0, 2)
+  write(options.directionsMask, 8)
+  write(options.gridOffset, 4)
+  write(options.fontOffset, 5)
+  write(0, 1)
+  write(0, 1)
+  write(0, 1)
+  if (options.words) {
+    for (const word of options.words) {
+      for (const ch of word) write(PACK_LETTERS.indexOf(ch as (typeof PACK_LETTERS)[number]), 5)
+      write(27, 5)
+    }
+    write(28, 5)
+  }
+  const bytes = new Uint8Array(Math.ceil(bits.length / 8))
+  for (let i = 0; i < bits.length; i++) {
+    if (bits[i]) bytes[i >> 3]! |= 1 << (7 - (i & 7))
+  }
+  return bytes
+}
+
+function bytesToBase62(bytes: Uint8Array): string {
+  let n = 0n
+  for (const byte of bytes) n = (n << 8n) + BigInt(byte)
+  if (n === 0n) return '0'
+  const chars: string[] = []
+  while (n > 0n) {
+    chars.push(BASE62_ALPHABET[Number(n % 62n)]!)
+    n /= 62n
+  }
+  return chars.reverse().join('')
+}
+
 const SETTINGS: ShareSettings = {
   directions: ['ltr', 'btt', 'bltr'],
   gridSize: 16,
   fontSize: 22,
   randomAge10: true,
   noFinals: true,
+  imageCount: 3,
 }
 
 function roundTrip(payload: SharePayload): SharePayload {
@@ -45,7 +94,7 @@ describe('share alphabet', () => {
 
   it('uses alphanumeric base62 so ?p= never needs percent-encoding', () => {
     expect(BASE62_ALPHABET).toHaveLength(62)
-    expect(SHARE_VERSION).toBe(1)
+    expect(SHARE_VERSION).toBe(2)
     const encoded = encodeSharePayload({ words: WORDS, settings: SETTINGS })
     expect(encoded).toMatch(/^[0-9A-Za-z]+$/)
     expect(encodeURIComponent(encoded)).toBe(encoded)
@@ -71,6 +120,7 @@ describe('encode/decode round-trip', () => {
     expect(decoded.settings!.fontSize).toBe(22)
     expect(decoded.settings!.randomAge10).toBe(true)
     expect(decoded.settings!.noFinals).toBe(true)
+    expect(decoded.settings!.imageCount).toBe(3)
   })
 
   it('restores both words and settings', () => {
@@ -81,6 +131,7 @@ describe('encode/decode round-trip', () => {
     expect(decoded.settings!.fontSize).toBe(22)
     expect(decoded.settings!.randomAge10).toBe(true)
     expect(decoded.settings!.noFinals).toBe(true)
+    expect(decoded.settings!.imageCount).toBe(3)
   })
 
   it('round-trips an empty word list when words are included', () => {
@@ -96,12 +147,40 @@ describe('encode/decode round-trip', () => {
     expect(decoded.settings!.directions).toEqual([...DIRECTION_IDS])
   })
 
-  it('clamps board and font sizes into the live UI ranges', () => {
+  it('clamps board, font, and image count into the packed ranges', () => {
     const decoded = roundTrip({
-      settings: { ...SETTINGS, gridSize: 99, fontSize: 3 },
+      settings: { ...SETTINGS, gridSize: 99, fontSize: 3, imageCount: 99 },
     })
     expect(decoded.settings!.gridSize).toBe(20)
     expect(decoded.settings!.fontSize).toBe(12)
+    expect(decoded.settings!.imageCount).toBe(MAX_SHARE_IMAGE_COUNT)
+  })
+
+  it('round-trips an image count of zero separately from one', () => {
+    const none = roundTrip({ settings: { ...SETTINGS, imageCount: 0 } })
+    const one = roundTrip({ settings: { ...SETTINGS, imageCount: 1 } })
+    expect(none.settings!.imageCount).toBe(0)
+    expect(one.settings!.imageCount).toBe(1)
+    expect(encodeSharePayload({ settings: { ...SETTINGS, imageCount: 0 } })).not.toBe(
+      encodeSharePayload({ settings: { ...SETTINGS, imageCount: 1 } }),
+    )
+  })
+
+  it('decodes version-1 links as imageCount 0 without shifting the word list', () => {
+    const v1SettingsAndWord = bytesToBase62(
+      legacyVersion1Bytes({
+        directionsMask: 1,
+        gridOffset: 4,
+        fontOffset: 6,
+        words: ['שמש'],
+      }),
+    )
+    const decoded = decodeSharePayload(v1SettingsAndWord)
+    expect(decoded?.settings?.imageCount).toBe(0)
+    expect(decoded?.settings?.gridSize).toBe(12)
+    expect(decoded?.settings?.fontSize).toBe(18)
+    expect(decoded?.settings?.directions).toEqual(['rtl'])
+    expect(decoded?.words).toEqual(['שמש'])
   })
 
   it('keeps sofit letters distinct from their regular forms', () => {

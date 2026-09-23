@@ -14,6 +14,15 @@ import {
   extraFillCount,
   MAX_BANK_WORDS,
 } from './wordLimits.ts'
+import {
+  BLOCKED_CELL,
+  blockedCellKeys,
+  IMAGE_BLOCK_SIZE,
+  imagePlacementErrorHe,
+  maxImageBlocks,
+  placeImageBlocks,
+  type ImageBlock,
+} from './imageBlocks.ts'
 import { mulberry32, pickIndex, shuffle } from './rng.ts'
 import {
   findWordOccurrences,
@@ -35,6 +44,11 @@ export type GenerateRequest = {
   directions: readonly DirectionId[]
   noFinalLetters: boolean
   randomAge10Fill: boolean
+  /**
+   * How many 4×4 pictures to block out. Omitted means 0 so older callers
+   * stay letter-only. The app setting defaults to 1.
+   */
+  imageCount?: number
   seed?: number
   rng?: () => number
   maxPlacementAttempts?: number
@@ -47,6 +61,7 @@ export type GenerateSuccess = {
   grid: string[][]
   words: string[]
   placements: Placement[]
+  imageBlocks: ImageBlock[]
   attempts: number
   extraWords: string[]
   skippedShort: string[]
@@ -167,10 +182,12 @@ function canPlace(
   grid: (string | null)[][],
   word: string,
   slot: Slot,
+  blocked: ReadonlySet<string>,
 ): boolean {
   for (let i = 0; i < word.length; i++) {
     const r = slot.row + slot.direction.dr * i
     const c = slot.col + slot.direction.dc * i
+    if (blocked.has(`${r},${c}`)) return false
     const existing = grid[r]![c]
     if (existing !== null && existing !== word[i]) return false
   }
@@ -197,6 +214,7 @@ function placeWords(
   words: readonly string[],
   directions: readonly Direction[],
   rng: () => number,
+  blocked: ReadonlySet<string>,
 ): Placement[] | null {
   const grid = emptyGrid(size)
   const placements: Placement[] = []
@@ -206,7 +224,7 @@ function placeWords(
     const slots = shuffle(allSlots(size, word.length, directions), rng)
     let placed: Placement | null = null
     for (const slot of slots) {
-      if (!canPlace(grid, word, slot)) continue
+      if (!canPlace(grid, word, slot, blocked)) continue
       const cells = writeWord(grid, word, slot)
       placed = {
         word,
@@ -248,14 +266,30 @@ function fillRandom(
   )
 }
 
-function lockedCells(placements: readonly Placement[]): Set<string> {
-  const locked = new Set<string>()
+function lockedCells(
+  placements: readonly Placement[],
+  blocked: ReadonlySet<string>,
+): Set<string> {
+  const locked = new Set<string>(blocked)
   for (const p of placements) {
     for (const cell of p.cells) {
       locked.add(`${cell.row},${cell.col}`)
     }
   }
   return locked
+}
+
+function stampBlocked(
+  grid: (string | null)[][],
+  blocks: readonly ImageBlock[],
+): void {
+  for (const block of blocks) {
+    for (let row = 0; row < IMAGE_BLOCK_SIZE; row++) {
+      for (let col = 0; col < IMAGE_BLOCK_SIZE; col++) {
+        grid[block.row + row]![block.col + col] = BLOCKED_CELL
+      }
+    }
+  }
 }
 
 function repairUniqueness(
@@ -281,6 +315,7 @@ function repairUniqueness(
         if (mutable.length === 0) continue
         const cell = mutable[pickIndex(mutable.length, rng)]!
         const current = grid[cell.row]![cell.col]!
+        if (current === BLOCKED_CELL) continue
         let next = current
         let guard = 0
         while (next === current && guard < 12) {
@@ -303,6 +338,20 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
     return fail(
       'Grid size must be between 8 and 20.',
       'גודל הרשת חייב להיות בין 8 ל־20.',
+    )
+  }
+
+  const imageCount = request.imageCount ?? 0
+  if (!Number.isInteger(imageCount) || imageCount < 0) {
+    return fail(
+      'Image count must be zero or more.',
+      'מספר התמונות חייב להיות אפס או יותר.',
+    )
+  }
+  if (imageCount > maxImageBlocks(size)) {
+    return fail(
+      `Could not place ${imageCount} non-overlapping 4×4 image blocks on a ${size}×${size} grid.`,
+      imagePlacementErrorHe(imageCount, size),
     )
   }
 
@@ -372,17 +421,38 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
     )
   }
 
+  const freeCells = size * size - imageCount * IMAGE_BLOCK_SIZE * IMAGE_BLOCK_SIZE
+  const shortest = words.reduce((min, word) => Math.min(min, word.length), words[0]!.length)
+  if (freeCells < shortest) {
+    return fail(
+      'Not enough open cells left for the words once the pictures are placed.',
+      'אין מספיק משבצות פנויות למילים אחרי התמונות. הקטינו את מספר התמונות או הגדילו את הלוח.',
+      skips,
+    )
+  }
+
   const alphabet = HEBREW_LETTERS
   const maxPlacement = request.maxPlacementAttempts ?? DEFAULT_MAX_PLACEMENT
   const maxRepair = request.maxRepairAttempts ?? DEFAULT_MAX_REPAIR
 
   for (let attempt = 1; attempt <= maxPlacement; attempt++) {
-    const placements = placeWords(size, words, directions, rng)
+    const blocks = placeImageBlocks(size, imageCount, rng)
+    if (!blocks) {
+      return fail(
+        `Could not place ${imageCount} non-overlapping 4×4 image blocks on a ${size}×${size} grid.`,
+        imagePlacementErrorHe(imageCount, size),
+        skips,
+      )
+    }
+
+    const blocked = blockedCellKeys(blocks)
+    const placements = placeWords(size, words, directions, rng, blocked)
     if (!placements) continue
 
     const partial = applyPlacements(size, placements)
+    stampBlocked(partial, blocks)
     const grid = fillRandom(partial, alphabet, rng)
-    const locked = lockedCells(placements)
+    const locked = lockedCells(placements, blocked)
 
     if (
       !repairUniqueness(
@@ -404,6 +474,7 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
       grid,
       words: sortedWords,
       placements,
+      imageBlocks: blocks,
       attempts: attempt,
       extraWords,
       fillCappedAtMax,
@@ -411,9 +482,13 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
     }
   }
 
+  const retryHint =
+    imageCount > 0
+      ? 'נסו רשת גדולה יותר, פחות מילים, פחות כיוונים, או פחות תמונות.'
+      : 'נסו רשת גדולה יותר, פחות מילים, או פחות כיוונים.'
   return fail(
     `Could not build a unique puzzle after ${maxPlacement} attempts.`,
-    `לא הצלחנו ליצור תפזורת שבה כל מילה מופיעה פעם אחת בלבד אחרי ${maxPlacement} ניסיונות. נסו רשת גדולה יותר, פחות מילים, או פחות כיוונים.`,
+    `לא הצלחנו ליצור תפזורת שבה כל מילה מופיעה פעם אחת בלבד אחרי ${maxPlacement} ניסיונות. ${retryHint}`,
     skips,
   )
 }
