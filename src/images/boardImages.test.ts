@@ -24,16 +24,10 @@ describe('embedded board images', () => {
     expect(BOARD_IMAGE_LABELS.star).toBe('כוכב')
   })
 
-  it('uses a full-bleed plate on the board and a rounded plate in the catalog', () => {
+  it('keeps the rounded backdrop plate inside each drawing', () => {
     const board = renderToStaticMarkup(createElement(BoardImage, { id: 'sun' }))
-    expect(board).toContain('<rect width="64" height="64" fill="#fff6d2">')
-    expect(board).not.toContain('rx="12"')
-
-    const catalog = renderToStaticMarkup(
-      createElement(BoardImage, { id: 'sun', framed: true }),
-    )
-    expect(catalog).toContain('rx="12"')
-    expect(catalog).toContain('fill="#fff6d2"')
+    expect(board).toContain('rx="12"')
+    expect(board).toContain('fill="#fff6d2"')
   })
 })
 

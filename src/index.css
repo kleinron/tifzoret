@@ -844,7 +844,6 @@ button.outline {
     gap: 1px;
     justify-items: stretch;
     align-items: stretch;
-    overflow: hidden;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -874,10 +873,6 @@ button.outline {
   .cell-image {
     background: #fff !important;
     overflow: hidden;
-    /* Grow over the 1px print gap so neighboring pictures stay flush. */
-    width: calc(100% + 2px);
-    height: calc(100% + 2px);
-    margin: -1px;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
