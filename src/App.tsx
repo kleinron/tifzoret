@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ImageCatalogModal } from './components/ImageCatalogModal.tsx'
 import { WordBank } from './components/WordBank.tsx'
 import { SettingsPanel } from './components/SettingsPanel.tsx'
 import { PrinterIcon } from './components/actionIcons.tsx'
@@ -28,6 +29,7 @@ import {
   MIN_GRID_SIZE,
   planWordIntake,
 } from './generator/wordLimits.ts'
+import { catalogShortcutOpens, shortcutFocusFromTarget } from './images/catalogShortcut.ts'
 import { payloadFromSearch, type SharePayload } from './share/codec.ts'
 
 const DEFAULT_BANK = [
@@ -107,6 +109,8 @@ export default function App() {
   const [puzzleWords, setPuzzleWords] = useState<string[]>([])
   const [foundWords, setFoundWords] = useState<Set<string>>(new Set())
   const [foundCells, setFoundCells] = useState<Map<string, string>>(new Map())
+  const [catalogOpen, setCatalogOpen] = useState(false)
+  const closeCatalog = useCallback(() => setCatalogOpen(false), [])
 
   const toggleDirection = (id: DirectionId) => {
     setEnabledDirs((prev) => {
@@ -253,6 +257,24 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const opens = catalogShortcutOpens(
+        event,
+        shortcutFocusFromTarget(document.activeElement),
+        shortcutFocusFromTarget(event.target),
+      )
+      if (!opens) return
+      // Overrides the browser DevTools chord while this page is focused,
+      // except when the user is in a text field.
+      event.preventDefault()
+      event.stopPropagation()
+      setCatalogOpen(true)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [])
+
   return (
     <div className="page">
       <header className="topbar">
@@ -342,6 +364,7 @@ export default function App() {
 
         <WordBank words={puzzleWords} found={foundWords} />
       </div>
+      {catalogOpen ? <ImageCatalogModal onClose={closeCatalog} /> : null}
     </div>
   )
 }
