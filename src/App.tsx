@@ -29,10 +29,7 @@ import {
   MIN_GRID_SIZE,
   planWordIntake,
 } from './generator/wordLimits.ts'
-import {
-  shortcutFocusFromTarget,
-  shouldOpenImageCatalog,
-} from './images/catalogShortcut.ts'
+import { catalogShortcutOpens, shortcutFocusFromTarget } from './images/catalogShortcut.ts'
 import { payloadFromSearch, type SharePayload } from './share/codec.ts'
 
 const DEFAULT_BANK = [
@@ -262,7 +259,12 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (!shouldOpenImageCatalog(event, shortcutFocusFromTarget(event.target))) return
+      const opens = catalogShortcutOpens(
+        event,
+        shortcutFocusFromTarget(document.activeElement),
+        shortcutFocusFromTarget(event.target),
+      )
+      if (!opens) return
       // Overrides the browser DevTools chord while this page is focused,
       // except when the user is in a text field.
       event.preventDefault()

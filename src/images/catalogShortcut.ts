@@ -48,18 +48,35 @@ export function isTextFieldFocused(node: ShortcutFocusNode | null | undefined): 
   return TEXT_INPUT_TYPES.has(type)
 }
 
-export function shouldOpenImageCatalog(
+/** Open only for the catalog chord, and only when neither focus nor the event target is a text field. */
+export function catalogShortcutOpens(
   event: CatalogShortcutEvent,
-  focus: ShortcutFocusNode | null | undefined,
+  active: ShortcutFocusNode | null | undefined,
+  target: ShortcutFocusNode | null | undefined,
 ): boolean {
-  return isImageCatalogShortcut(event) && !isTextFieldFocused(focus)
+  if (!isImageCatalogShortcut(event)) return false
+  if (isTextFieldFocused(active) || isTextFieldFocused(target)) return false
+  return true
 }
 
+function focusNode(element: Element): ShortcutFocusNode {
+  return {
+    tagName: element.tagName,
+    type: element instanceof HTMLInputElement ? element.type : undefined,
+    isContentEditable: element instanceof HTMLElement && element.isContentEditable,
+  }
+}
+
+/** The focused node, or the text field that contains it. */
 export function shortcutFocusFromTarget(target: EventTarget | null): ShortcutFocusNode | null {
   if (typeof Element === 'undefined' || !(target instanceof Element)) return null
-  return {
-    tagName: target.tagName,
-    type: target instanceof HTMLInputElement ? target.type : undefined,
-    isContentEditable: target instanceof HTMLElement && target.isContentEditable,
+  let current: Element | null = target
+  let fallback: ShortcutFocusNode | null = null
+  while (current) {
+    const node = focusNode(current)
+    if (isTextFieldFocused(node)) return node
+    fallback ??= node
+    current = current.parentElement
   }
+  return fallback
 }

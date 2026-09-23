@@ -6,9 +6,9 @@ import App from '../App.tsx'
 import { ImageCatalogModal } from '../components/ImageCatalogModal.tsx'
 import { BOARD_IMAGE_IDS, BOARD_IMAGE_LABELS } from './catalog.ts'
 import {
+  catalogShortcutOpens,
   isImageCatalogShortcut,
   isTextFieldFocused,
-  shouldOpenImageCatalog,
 } from './catalogShortcut.ts'
 
 const base = {
@@ -62,25 +62,27 @@ describe('picture catalog shortcut', () => {
 
   it('does not intercept the chord inside a text field', () => {
     const chord = { ...base, ctrlKey: true, shiftKey: true }
-    expect(shouldOpenImageCatalog(chord, null)).toBe(true)
-    expect(shouldOpenImageCatalog(chord, { tagName: 'BUTTON' })).toBe(true)
-    expect(shouldOpenImageCatalog(chord, { tagName: 'INPUT', type: 'checkbox' })).toBe(true)
-    expect(shouldOpenImageCatalog(chord, { tagName: 'INPUT', type: 'range' })).toBe(true)
-    expect(shouldOpenImageCatalog(chord, { tagName: 'INPUT', type: 'number' })).toBe(true)
+    expect(catalogShortcutOpens(chord, null, null)).toBe(true)
+    expect(catalogShortcutOpens(chord, { tagName: 'BUTTON' }, { tagName: 'BUTTON' })).toBe(true)
+    expect(catalogShortcutOpens(chord, { tagName: 'INPUT', type: 'checkbox' }, null)).toBe(true)
+    expect(catalogShortcutOpens(chord, { tagName: 'INPUT', type: 'range' }, null)).toBe(true)
+    expect(catalogShortcutOpens(chord, { tagName: 'INPUT', type: 'number' }, null)).toBe(true)
     expect(isTextFieldFocused({ tagName: 'INPUT' })).toBe(true)
     expect(isTextFieldFocused({ tagName: 'INPUT', type: 'text' })).toBe(true)
     expect(isTextFieldFocused({ tagName: 'INPUT', type: 'search' })).toBe(true)
     expect(isTextFieldFocused({ tagName: 'TEXTAREA' })).toBe(true)
     expect(isTextFieldFocused({ tagName: 'DIV', isContentEditable: true })).toBe(true)
-    expect(shouldOpenImageCatalog(chord, { tagName: 'TEXTAREA' })).toBe(false)
-    expect(shouldOpenImageCatalog(chord, { tagName: 'INPUT', type: 'text' })).toBe(false)
+    expect(catalogShortcutOpens(chord, { tagName: 'TEXTAREA' }, { tagName: 'BODY' })).toBe(false)
+    expect(catalogShortcutOpens(chord, { tagName: 'BODY' }, { tagName: 'TEXTAREA' })).toBe(false)
+    expect(catalogShortcutOpens(chord, { tagName: 'INPUT', type: 'text' }, null)).toBe(false)
     expect(
-      shouldOpenImageCatalog(chord, { tagName: 'DIV', isContentEditable: true }),
+      catalogShortcutOpens(chord, { tagName: 'DIV', isContentEditable: true }, null),
     ).toBe(false)
     expect(
-      shouldOpenImageCatalog(
+      catalogShortcutOpens(
         { ...chord, metaKey: true, ctrlKey: false },
         { tagName: 'TEXTAREA' },
+        null,
       ),
     ).toBe(false)
   })
