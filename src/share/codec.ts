@@ -10,8 +10,11 @@
  * - Density is ~1% worse than base64url, which is dwarfed by 5-bit Hebrew packing
  *   (UTF-8 Hebrew is 16 bits/letter in the URL after percent-encoding).
  *
+ * Image positions are not stored. The count is a setting; the recipient
+ * re-rolls origins on generate, the same way word placement is re-rolled.
+ *
  * Binary layout (MSB-first bitstream):
- *   4 bits  version (=1)
+ *   4 bits  version (=2; version 1 still decodes)
  *   1 bit   hasWords
  *   1 bit   hasSettings
  *   2 bits  reserved (0)
@@ -21,7 +24,8 @@
  *     5 bits fontSize - 12         (12–28)
  *     1 bit  randomAge10
  *     1 bit  noFinals
- *     1 bit  reserved (0)
+ *     5 bits imageCount (0–31)     version 2
+ *     1 bit  reserved (0)          version 1 only — imageCount decodes as 0
  *   if hasWords:
  *     for each word: 5-bit indices into PACK_LETTERS, then WORD_END (27)
  *     then LIST_END (28)
@@ -34,7 +38,13 @@ import { DIRECTION_IDS, type DirectionId } from '../generator/directions.ts'
 import { MAX_WORD_LENGTH, normalizeHebrew } from '../generator/hebrew.ts'
 import { MAX_BANK_WORDS, MAX_GRID_SIZE, MIN_GRID_SIZE } from '../generator/wordLimits.ts'
 
-export const SHARE_VERSION = 1
+export const SHARE_VERSION = 2
+
+/** Version 1 links predate image blocks and decode with imageCount 0. */
+const SHARE_VERSION_V1 = 1
+
+/** 5-bit field. The board clamps further to how many 4×4 blocks fit. */
+export const MAX_SHARE_IMAGE_COUNT = 31
 export const SHARE_QUERY_PARAM = 'p'
 
 export const MIN_FONT_SIZE = 12
@@ -86,6 +96,8 @@ export type ShareSettings = {
   fontSize: number
   randomAge10: boolean
   noFinals: boolean
+  /** 4×4 pictures to place. Origins are not shared; they re-roll on generate. */
+  imageCount: number
 }
 
 export type SharePayload = {
@@ -223,7 +235,7 @@ export function encodeSharePayload(payload: SharePayload): string {
     w.write(clampInt(settings.fontSize, MIN_FONT_SIZE, MAX_FONT_SIZE) - MIN_FONT_SIZE, 5)
     w.write(settings.randomAge10 ? 1 : 0, 1)
     w.write(settings.noFinals ? 1 : 0, 1)
-    w.write(0, 1)
+    w.write(clampInt(settings.imageCount, 0, MAX_SHARE_IMAGE_COUNT), 5)
   }
 
   if (hasWords && words) {
@@ -247,7 +259,11 @@ export function decodeSharePayload(text: string): SharePayload | null {
   const hasWordsBit = r.read(1)
   const hasSettingsBit = r.read(1)
   const reserved = r.read(2)
-  if (version !== SHARE_VERSION || hasWordsBit === null || hasSettingsBit === null) {
+  if (
+    (version !== SHARE_VERSION && version !== SHARE_VERSION_V1) ||
+    hasWordsBit === null ||
+    hasSettingsBit === null
+  ) {
     return null
   }
   if (reserved !== 0) return null
@@ -260,16 +276,23 @@ export function decodeSharePayload(text: string): SharePayload | null {
     const fontOff = r.read(5)
     const randomAge10 = r.read(1)
     const noFinals = r.read(1)
-    const pad = r.read(1)
     if (
       mask === null ||
       gridOff === null ||
       fontOff === null ||
       randomAge10 === null ||
-      noFinals === null ||
-      pad === null
+      noFinals === null
     ) {
       return null
+    }
+    let imageCount = 0
+    if (version === SHARE_VERSION_V1) {
+      const pad = r.read(1)
+      if (pad === null) return null
+    } else {
+      const rawCount = r.read(5)
+      if (rawCount === null) return null
+      imageCount = clampInt(rawCount, 0, MAX_SHARE_IMAGE_COUNT)
     }
     payload.settings = {
       directions: directionsFromMask(mask),
@@ -277,6 +300,7 @@ export function decodeSharePayload(text: string): SharePayload | null {
       fontSize: clampInt(fontOff + MIN_FONT_SIZE, MIN_FONT_SIZE, MAX_FONT_SIZE),
       randomAge10: randomAge10 === 1,
       noFinals: noFinals === 1,
+      imageCount,
     }
   }
 

@@ -236,6 +236,8 @@ describe('SettingsPanel validation UI', () => {
     onNoFinals: () => undefined,
     gridSize: 12,
     onGridSize: () => undefined,
+    imageCount: 1,
+    onImageCount: () => undefined,
     fontSize: 18,
     onFontSize: () => undefined,
     busy: false,
@@ -267,6 +269,9 @@ describe('SettingsPanel validation UI', () => {
     expect(html).toContain(age10FillHint(12, 1))
     expect(html).not.toContain('השלם אקראי')
     expect(html).not.toContain('בלי רשת')
+    expect(html).toContain('תמונות על הלוח: 1')
+    expect(html).toContain('aria-label="תמונות על הלוח"')
+    expect(html).toContain('max="9"')
     expect(html).toContain('aria-label="מימין לשמאל"')
     expect(html).toContain('title="מימין לשמאל"')
     expect(html).toContain('direction-arrow')
@@ -314,5 +319,21 @@ describe('SettingsPanel validation UI', () => {
     )
     expect(html).toMatch(/<button[^>]*disabled[^>]*>הוסף למחסן מילים/)
     expect(html).not.toMatch(/<button[^>]*disabled[^>]*>צור תפזורת/)
+  })
+
+  it('caps תמונות על הלוח at how many 4×4 blocks fit', () => {
+    const html = renderToStaticMarkup(
+      createElement(SettingsPanel, {
+        ...base,
+        gridSize: 8,
+        imageCount: 9,
+        issues: [],
+        addDisabled: false,
+        generateDisabled: false,
+      }),
+    )
+    expect(html).toContain('תמונות על הלוח: 4')
+    expect(html).toContain('max="4"')
+    expect(html).toContain('עד 4 בלוח הזה')
   })
 })

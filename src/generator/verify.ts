@@ -1,4 +1,5 @@
 import type { Direction, DirectionId } from './directions.ts'
+import { BLOCKED_CELL } from './imageBlocks.ts'
 
 export type Cell = { row: number; col: number }
 
@@ -38,7 +39,10 @@ export function findWordOccurrences(
             ok = false
             break
           }
-          if (grid[r]![c] !== word[i]) {
+          const letter = grid[r]![c]
+          // Image cells are not letters. A span that enters one is skipped,
+          // not joined across the picture.
+          if (letter === BLOCKED_CELL || letter !== word[i]) {
             ok = false
             break
           }

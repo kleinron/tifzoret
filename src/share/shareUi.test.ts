@@ -12,6 +12,7 @@ const settings = {
   fontSize: 18,
   randomAge10: false,
   noFinals: false,
+  imageCount: 1,
 }
 
 describe('share popover (designer lock)', () => {

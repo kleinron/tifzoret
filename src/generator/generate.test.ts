@@ -7,6 +7,11 @@ import {
   type GenerateSuccess,
 } from './generate.ts'
 import {
+  BLOCKED_CELL,
+  imageBlockCells,
+  imagePlacementErrorHe,
+} from './imageBlocks.ts'
+import {
   filterBankWords,
   hasFinalLetter,
   isFinalLetter,
@@ -100,6 +105,19 @@ describe('uniqueness scan', () => {
     expect(found).toHaveLength(2)
     expect(isUniquePlacement(grid, ['שמש'], dirs)).toBe(false)
     expect(uniquenessViolations(grid, ['שמש'], dirs)[0]).toMatch(/2 occurrences/)
+  })
+
+  it('does not read a word through a blocked image cell', () => {
+    const grid = [
+      ['א', BLOCKED_CELL, 'ב', 'ג'],
+      ['א', 'ב', 'ג', 'ד'],
+      ['ה', 'ו', 'ז', 'ח'],
+      ['ט', 'י', 'כ', 'ל'],
+    ]
+    const dirs = DIRECTIONS.filter((d) => d.id === 'ltr')
+    const found = findWordOccurrences(grid, 'אבג', dirs)
+    expect(found).toHaveLength(1)
+    expect(found[0]?.row).toBe(1)
   })
 
   it('counts a palindrome on the same cells only once', () => {
@@ -254,6 +272,111 @@ describe('generatePuzzle uniqueness', () => {
     if (result.ok) throw new Error('expected failure')
     expect(result.skippedMaxLength).toContain('אבגדהוזחטיכלמנסעפ')
     expect(result.errorHe).toMatch(/אין מילים/)
+  })
+
+  it('blocks image cells out of placement and random fill', () => {
+    const result = success(
+      generatePuzzle({
+        size: 12,
+        userWords: ['שמש', 'ירח', 'כוכב', 'פרח', 'ספר', 'כדור', 'חתול', 'בית'],
+        directions: [...DEFAULT_DIRECTION_IDS],
+        noFinalLetters: false,
+        randomAge10Fill: false,
+        imageCount: 2,
+        seed: 42,
+      }),
+    )
+    expect(result.imageBlocks).toHaveLength(2)
+    const blocked = new Set<string>()
+    for (const block of result.imageBlocks) {
+      for (const cell of imageBlockCells(block)) {
+        const key = `${cell.row},${cell.col}`
+        expect(blocked.has(key)).toBe(false)
+        blocked.add(key)
+        expect(result.grid[cell.row]![cell.col]).toBe(BLOCKED_CELL)
+      }
+    }
+    expect(blocked.size).toBe(32)
+    for (const placement of result.placements) {
+      for (const cell of placement.cells) {
+        expect(blocked.has(`${cell.row},${cell.col}`)).toBe(false)
+      }
+    }
+    expect(
+      isUniquePlacement(
+        result.grid,
+        result.words,
+        DIRECTIONS.filter((d) => DEFAULT_DIRECTION_IDS.includes(d.id)),
+      ),
+    ).toBe(true)
+  })
+
+  it('is deterministic for image blocks when the seed is fixed', () => {
+    const request = {
+      size: 12,
+      userWords: ['שמש', 'ירח', 'ספר', 'פרח'],
+      directions: [...DEFAULT_DIRECTION_IDS] as const,
+      noFinalLetters: false,
+      randomAge10Fill: false,
+      imageCount: 2,
+      seed: 99,
+    }
+    const a = success(generatePuzzle({ ...request }))
+    const b = success(generatePuzzle({ ...request }))
+    expect(a.imageBlocks).toEqual(b.imageBlocks)
+    expect(a.grid).toEqual(b.grid)
+  })
+
+  it('leaves a letter in every cell when image count is zero', () => {
+    const result = success(
+      generatePuzzle({
+        size: 10,
+        userWords: ['שמש', 'ירח'],
+        directions: [...DEFAULT_DIRECTION_IDS],
+        noFinalLetters: false,
+        randomAge10Fill: false,
+        imageCount: 0,
+        seed: 5,
+      }),
+    )
+    expect(result.imageBlocks).toEqual([])
+    for (const row of result.grid) {
+      for (const ch of row) expect(ch).not.toBe(BLOCKED_CELL)
+    }
+  })
+
+  it('fails in Hebrew when the 4×4 blocks cannot fit', () => {
+    const result = generatePuzzle({
+      size: 8,
+      userWords: ['שמש'],
+      directions: [...DEFAULT_DIRECTION_IDS],
+      noFinalLetters: false,
+      randomAge10Fill: false,
+      imageCount: 5,
+      seed: 1,
+    })
+    expect(result.ok).toBe(false)
+    if (result.ok) throw new Error('expected failure')
+    expect(result.errorHe).toBe(imagePlacementErrorHe(5, 8))
+    expect(result.errorHe).toContain('4×4')
+    expect(result.errorHe).toContain('לכל היותר 4')
+  })
+
+  it('asks for fewer images when pictures cover the whole board', () => {
+    const result = generatePuzzle({
+      size: 8,
+      userWords: ['שמש'],
+      directions: [...DEFAULT_DIRECTION_IDS],
+      noFinalLetters: false,
+      randomAge10Fill: false,
+      imageCount: 4,
+      seed: 1,
+      maxPlacementAttempts: 1,
+      maxRepairAttempts: 1,
+    })
+    expect(result.ok).toBe(false)
+    if (result.ok) throw new Error('expected failure')
+    expect(result.errorHe).toMatch(/פחות תמונות/)
   })
 
   it('fails when no directions are selected', () => {
