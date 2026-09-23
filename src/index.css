@@ -691,14 +691,13 @@ button.outline {
   cursor: default;
   z-index: 1;
   overflow: hidden;
-  box-shadow: inset 0 0 0 1.5px #3d3428;
 }
 
 .board-image {
   position: absolute;
-  inset: 7%;
-  width: auto;
-  height: auto;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: block;
 }
 
@@ -873,7 +872,6 @@ button.outline {
 
   .cell-image {
     background: #fff !important;
-    box-shadow: inset 0 0 0 1px #000;
     overflow: hidden;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

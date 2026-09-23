@@ -23,6 +23,12 @@ describe('embedded board images', () => {
     expect(BOARD_IMAGE_LABELS.fish).toBe('דג')
     expect(BOARD_IMAGE_LABELS.star).toBe('כוכב')
   })
+
+  it('keeps the rounded backdrop plate inside each drawing', () => {
+    const board = renderToStaticMarkup(createElement(BoardImage, { id: 'sun' }))
+    expect(board).toContain('rx="12"')
+    expect(board).toContain('fill="#fff6d2"')
+  })
 })
 
 describe('default image setting', () => {

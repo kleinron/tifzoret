@@ -83,6 +83,14 @@ describe('print stylesheet', () => {
     expect(print).not.toMatch(/\.cell-image\s*\{[^}]*display:\s*none/)
   })
 
+  it('does not frame board picture cells with a border or inset shadow', () => {
+    const screen = css.slice(0, css.indexOf('@media print'))
+    expect(screen).not.toMatch(/\.cell-image\s*\{[^}]*(box-shadow|outline|border)\s*:/)
+    expect(print).not.toMatch(/\.cell-image\s*\{[^}]*(box-shadow|outline|border)\s*:/)
+    expect(screen).toMatch(/\.board-image\s*\{[^}]*inset:\s*0/)
+    expect(screen).toMatch(/\.catalog-art \.board-image\s*\{[^}]*inset:\s*4%/)
+  })
+
   it('centers letters in cells', () => {
     expect(print).toMatch(/text-align:\s*center/)
     expect(print).toMatch(/justify-content:\s*center/)
