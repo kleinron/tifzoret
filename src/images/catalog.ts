@@ -8,6 +8,14 @@ export const BOARD_IMAGE_IDS = [
   'star',
   'tree',
   'bird',
+  'house',
+  'car',
+  'apple',
+  'heart',
+  'cloud',
+  'moon',
+  'butterfly',
+  'boat',
 ] as const
 
 export type BoardImageId = (typeof BOARD_IMAGE_IDS)[number]
@@ -21,6 +29,14 @@ export const BOARD_IMAGE_LABELS: Record<BoardImageId, string> = {
   star: 'כוכב',
   tree: 'עץ',
   bird: 'ציפור',
+  house: 'בית',
+  car: 'מכונית',
+  apple: 'תפוח',
+  heart: 'לב',
+  cloud: 'ענן',
+  moon: 'ירח',
+  butterfly: 'פרפר',
+  boat: 'סירה',
 }
 
 export function boardImageLabel(id: BoardImageId): string {

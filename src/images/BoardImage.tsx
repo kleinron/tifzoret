@@ -176,6 +176,127 @@ function BirdIcon() {
   )
 }
 
+function HouseIcon() {
+  return (
+    <Icon backdrop="#fff1e0">
+      <rect x="40" y="14" width="6" height="12" rx="1" fill="#c46a4a" />
+      <polygon points="32,8 8,32 56,32" fill="#e07a5f" />
+      <rect x="14" y="30" width="36" height="22" rx="2" fill="#f3c56b" />
+      <rect x="18" y="35" width="8" height="8" rx="1" fill="#7eb6d6" />
+      <rect x="38" y="35" width="8" height="8" rx="1" fill="#7eb6d6" />
+      <rect x="27" y="38" width="10" height="14" rx="1.5" fill="#8a5a32" />
+    </Icon>
+  )
+}
+
+function CarIcon() {
+  return (
+    <Icon backdrop="#e7f3e4">
+      <polygon points="18,34 25,22 42,22 50,34" fill="#f2a35a" />
+      <rect x="8" y="32" width="48" height="14" rx="5" fill="#e07a5f" />
+      <rect x="27" y="24" width="6.5" height="7" rx="1" fill="#fffdf8" />
+      <rect x="36" y="24" width="6.5" height="7" rx="1" fill="#fffdf8" />
+      <circle cx="50" cy="37" r="2" fill="#f6e27a" />
+      <circle cx="18" cy="46" r="5.2" fill="#2a241c" />
+      <circle cx="46" cy="46" r="5.2" fill="#2a241c" />
+      <circle cx="18" cy="46" r="2" fill="#efe8dc" />
+      <circle cx="46" cy="46" r="2" fill="#efe8dc" />
+    </Icon>
+  )
+}
+
+function AppleIcon() {
+  return (
+    <Icon backdrop="#fff0ea">
+      <ellipse cx="32" cy="37" rx="14" ry="15" fill="#e24b4b" />
+      <path
+        d="M32 24c.4-6 4.2-10 8.5-10"
+        fill="none"
+        stroke="#8a5a32"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+      <ellipse cx="42" cy="16" rx="6.2" ry="3.2" fill="#5a9a45" transform="rotate(38 42 16)" />
+      <ellipse cx="25" cy="33" rx="3" ry="4.6" fill="#ffb0aa" />
+    </Icon>
+  )
+}
+
+function HeartIcon() {
+  return (
+    <Icon backdrop="#fde8f0">
+      <circle cx="23.5" cy="28" r="11" fill="#e24b6a" />
+      <circle cx="40.5" cy="28" r="11" fill="#e24b6a" />
+      <polygon points="13.6,33 50.4,33 32,54" fill="#e24b6a" />
+      <ellipse cx="20" cy="24" rx="3" ry="2" fill="#ffc2ce" />
+    </Icon>
+  )
+}
+
+function CloudIcon() {
+  return (
+    <Icon backdrop="#cfe8f6">
+      <circle cx="24" cy="34" r="10" fill="#fffdf8" />
+      <circle cx="37" cy="28" r="12" fill="#fffdf8" />
+      <circle cx="48" cy="35" r="8" fill="#fffdf8" />
+      <ellipse cx="34" cy="40" rx="20" ry="9" fill="#fffdf8" />
+    </Icon>
+  )
+}
+
+function MoonIcon() {
+  return (
+    <Icon backdrop="#ece4f7">
+      <circle cx="27" cy="33" r="16" fill="#f6d35a" />
+      <circle cx="38" cy="27" r="13" fill="#ece4f7" />
+      <circle cx="48" cy="16" r="1.7" fill="#f0b429" />
+      <circle cx="54" cy="28" r="1.1" fill="#e09a2b" />
+    </Icon>
+  )
+}
+
+function ButterflyIcon() {
+  return (
+    <Icon backdrop="#fff6e8">
+      <ellipse cx="21" cy="27" rx="12" ry="10" fill="#e86b93" />
+      <ellipse cx="43" cy="27" rx="12" ry="10" fill="#e86b93" />
+      <ellipse cx="23" cy="43" rx="9" ry="8" fill="#f6c445" />
+      <ellipse cx="41" cy="43" rx="9" ry="8" fill="#f6c445" />
+      <circle cx="20" cy="26" r="2.6" fill="#fffdf8" />
+      <circle cx="44" cy="26" r="2.6" fill="#fffdf8" />
+      <ellipse cx="32" cy="35" rx="2.8" ry="13" fill="#6b4a32" />
+      <circle cx="32" cy="20" r="3.3" fill="#6b4a32" />
+      <path
+        d="M29.4 18C26 12 24 10 22 8M34.6 18C38 12 40 10 42 8"
+        fill="none"
+        stroke="#6b4a32"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <circle cx="22" cy="8" r="1.4" fill="#6b4a32" />
+      <circle cx="42" cy="8" r="1.4" fill="#6b4a32" />
+    </Icon>
+  )
+}
+
+function BoatIcon() {
+  return (
+    <Icon backdrop="#e5f4fa">
+      <polygon points="33,14 50,40 33,40" fill="#fffdf8" />
+      <polygon points="31,22 16,40 31,40" fill="#ffe8cc" />
+      <rect x="31" y="12" width="2.4" height="32" rx="1" fill="#8a5a32" />
+      <polygon points="12,42 52,42 46,54 18,54" fill="#d86a45" />
+      <path
+        d="M12 58c6-3.2 9 2.4 14 0s8 3.2 14 0 8 3.2 14 0"
+        fill="none"
+        stroke="#3d9cc9"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+    </Icon>
+  )
+}
+
 export function BoardImage({ id }: { id: BoardImageId }) {
   switch (id) {
     case 'cat':
@@ -194,6 +315,22 @@ export function BoardImage({ id }: { id: BoardImageId }) {
       return <TreeIcon />
     case 'bird':
       return <BirdIcon />
+    case 'house':
+      return <HouseIcon />
+    case 'car':
+      return <CarIcon />
+    case 'apple':
+      return <AppleIcon />
+    case 'heart':
+      return <HeartIcon />
+    case 'cloud':
+      return <CloudIcon />
+    case 'moon':
+      return <MoonIcon />
+    case 'butterfly':
+      return <ButterflyIcon />
+    case 'boat':
+      return <BoatIcon />
     default: {
       const unknown: never = id
       throw new Error(`Unknown image ${String(unknown)}`)

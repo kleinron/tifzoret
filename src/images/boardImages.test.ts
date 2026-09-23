@@ -16,12 +16,40 @@ describe('embedded board images', () => {
       expect(html).toContain('board-image')
       expect(html).not.toMatch(/https?:|url\(|href=/)
     }
+    expect([...BOARD_IMAGE_IDS]).toEqual([
+      'cat',
+      'ball',
+      'sun',
+      'flower',
+      'fish',
+      'star',
+      'tree',
+      'bird',
+      'house',
+      'car',
+      'apple',
+      'heart',
+      'cloud',
+      'moon',
+      'butterfly',
+      'boat',
+    ])
     expect(BOARD_IMAGE_LABELS.cat).toBe('חתול')
     expect(BOARD_IMAGE_LABELS.ball).toBe('כדור')
     expect(BOARD_IMAGE_LABELS.sun).toBe('שמש')
     expect(BOARD_IMAGE_LABELS.flower).toBe('פרח')
     expect(BOARD_IMAGE_LABELS.fish).toBe('דג')
     expect(BOARD_IMAGE_LABELS.star).toBe('כוכב')
+    expect(BOARD_IMAGE_LABELS.tree).toBe('עץ')
+    expect(BOARD_IMAGE_LABELS.bird).toBe('ציפור')
+    expect(BOARD_IMAGE_LABELS.house).toBe('בית')
+    expect(BOARD_IMAGE_LABELS.car).toBe('מכונית')
+    expect(BOARD_IMAGE_LABELS.apple).toBe('תפוח')
+    expect(BOARD_IMAGE_LABELS.heart).toBe('לב')
+    expect(BOARD_IMAGE_LABELS.cloud).toBe('ענן')
+    expect(BOARD_IMAGE_LABELS.moon).toBe('ירח')
+    expect(BOARD_IMAGE_LABELS.butterfly).toBe('פרפר')
+    expect(BOARD_IMAGE_LABELS.boat).toBe('סירה')
   })
 })
 
