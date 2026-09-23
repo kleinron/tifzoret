@@ -5,7 +5,11 @@ import { describe, expect, it } from 'vitest'
 import App from '../App.tsx'
 import { ImageCatalogModal } from '../components/ImageCatalogModal.tsx'
 import { BOARD_IMAGE_IDS, BOARD_IMAGE_LABELS } from './catalog.ts'
-import { isImageCatalogShortcut } from './catalogShortcut.ts'
+import {
+  isImageCatalogShortcut,
+  isTextFieldFocused,
+  shouldOpenImageCatalog,
+} from './catalogShortcut.ts'
 
 const base = {
   key: 'i',
@@ -53,6 +57,31 @@ describe('picture catalog shortcut', () => {
         shiftKey: true,
         repeat: true,
       }),
+    ).toBe(false)
+  })
+
+  it('does not intercept the chord inside a text field', () => {
+    const chord = { ...base, ctrlKey: true, shiftKey: true }
+    expect(shouldOpenImageCatalog(chord, null)).toBe(true)
+    expect(shouldOpenImageCatalog(chord, { tagName: 'BUTTON' })).toBe(true)
+    expect(shouldOpenImageCatalog(chord, { tagName: 'INPUT', type: 'checkbox' })).toBe(true)
+    expect(shouldOpenImageCatalog(chord, { tagName: 'INPUT', type: 'range' })).toBe(true)
+    expect(shouldOpenImageCatalog(chord, { tagName: 'INPUT', type: 'number' })).toBe(true)
+    expect(isTextFieldFocused({ tagName: 'INPUT' })).toBe(true)
+    expect(isTextFieldFocused({ tagName: 'INPUT', type: 'text' })).toBe(true)
+    expect(isTextFieldFocused({ tagName: 'INPUT', type: 'search' })).toBe(true)
+    expect(isTextFieldFocused({ tagName: 'TEXTAREA' })).toBe(true)
+    expect(isTextFieldFocused({ tagName: 'DIV', isContentEditable: true })).toBe(true)
+    expect(shouldOpenImageCatalog(chord, { tagName: 'TEXTAREA' })).toBe(false)
+    expect(shouldOpenImageCatalog(chord, { tagName: 'INPUT', type: 'text' })).toBe(false)
+    expect(
+      shouldOpenImageCatalog(chord, { tagName: 'DIV', isContentEditable: true }),
+    ).toBe(false)
+    expect(
+      shouldOpenImageCatalog(
+        { ...chord, metaKey: true, ctrlKey: false },
+        { tagName: 'TEXTAREA' },
+      ),
     ).toBe(false)
   })
 })
