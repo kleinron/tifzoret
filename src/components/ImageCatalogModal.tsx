@@ -80,7 +80,7 @@ export function ImageCatalogModal({ onClose }: { onClose: () => void }) {
           {BOARD_IMAGE_IDS.map((id) => (
             <li key={id} className="catalog-tile">
               <div className="catalog-art">
-                <BoardImage id={id} />
+                <BoardImage id={id} framed />
               </div>
               <span className="catalog-label">{boardImageLabel(id)}</span>
             </li>

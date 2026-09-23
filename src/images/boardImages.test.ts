@@ -23,6 +23,18 @@ describe('embedded board images', () => {
     expect(BOARD_IMAGE_LABELS.fish).toBe('דג')
     expect(BOARD_IMAGE_LABELS.star).toBe('כוכב')
   })
+
+  it('uses a full-bleed plate on the board and a rounded plate in the catalog', () => {
+    const board = renderToStaticMarkup(createElement(BoardImage, { id: 'sun' }))
+    expect(board).toContain('<rect width="64" height="64" fill="#fff6d2">')
+    expect(board).not.toContain('rx="12"')
+
+    const catalog = renderToStaticMarkup(
+      createElement(BoardImage, { id: 'sun', framed: true }),
+    )
+    expect(catalog).toContain('rx="12"')
+    expect(catalog).toContain('fill="#fff6d2"')
+  })
 })
 
 describe('default image setting', () => {

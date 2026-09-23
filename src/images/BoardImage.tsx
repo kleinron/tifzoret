@@ -3,9 +3,11 @@ import type { BoardImageId } from './catalog.ts'
 
 function Icon({
   backdrop,
+  framed,
   children,
 }: {
   backdrop: string
+  framed: boolean
   children: ReactNode
 }) {
   return (
@@ -15,15 +17,19 @@ function Icon({
       aria-hidden="true"
       focusable="false"
     >
-      <rect x="1" y="1" width="62" height="62" rx="12" fill={backdrop} />
+      {framed ? (
+        <rect x="1" y="1" width="62" height="62" rx="12" fill={backdrop} />
+      ) : (
+        <rect width="64" height="64" fill={backdrop} />
+      )}
       {children}
     </svg>
   )
 }
 
-function CatIcon() {
+function CatIcon({ framed }: { framed: boolean }) {
   return (
-    <Icon backdrop="#ffe8cc">
+    <Icon backdrop="#ffe8cc" framed={framed}>
       <polygon points="14,30 16,12 28,26" fill="#e8943a" />
       <polygon points="50,30 48,12 36,26" fill="#e8943a" />
       <polygon points="17,28 19,16 26,26" fill="#f6c7b8" />
@@ -50,9 +56,9 @@ function CatIcon() {
   )
 }
 
-function BallIcon() {
+function BallIcon({ framed }: { framed: boolean }) {
   return (
-    <Icon backdrop="#fde8e4">
+    <Icon backdrop="#fde8e4" framed={framed}>
       <circle cx="32" cy="34" r="18" fill="#e24b4b" />
       <path
         d="M16 31c5 5 27 5 32 0"
@@ -73,9 +79,9 @@ function BallIcon() {
   )
 }
 
-function SunIcon() {
+function SunIcon({ framed }: { framed: boolean }) {
   return (
-    <Icon backdrop="#fff6d2">
+    <Icon backdrop="#fff6d2" framed={framed}>
       <g stroke="#f0b429" strokeWidth="4" strokeLinecap="round">
         <line x1="32" y1="8" x2="32" y2="16" />
         <line x1="32" y1="48" x2="32" y2="56" />
@@ -100,9 +106,9 @@ function SunIcon() {
   )
 }
 
-function FlowerIcon() {
+function FlowerIcon({ framed }: { framed: boolean }) {
   return (
-    <Icon backdrop="#fde8f0">
+    <Icon backdrop="#fde8f0" framed={framed}>
       <rect x="30" y="38" width="4" height="16" rx="2" fill="#5a9a45" />
       <circle cx="32" cy="16" r="7" fill="#e86b93" />
       <circle cx="46" cy="26" r="7" fill="#e86b93" />
@@ -114,9 +120,9 @@ function FlowerIcon() {
   )
 }
 
-function FishIcon() {
+function FishIcon({ framed }: { framed: boolean }) {
   return (
-    <Icon backdrop="#e5f4fa">
+    <Icon backdrop="#e5f4fa" framed={framed}>
       <polygon points="48,32 62,18 62,46" fill="#3d9cc9" />
       <ellipse cx="30" cy="32" rx="18" ry="12" fill="#3d9cc9" />
       <circle cx="20" cy="29" r="2.1" fill="#2a241c" />
@@ -132,9 +138,9 @@ function FishIcon() {
   )
 }
 
-function StarIcon() {
+function StarIcon({ framed }: { framed: boolean }) {
   return (
-    <Icon backdrop="#fff6d8">
+    <Icon backdrop="#fff6d8" framed={framed}>
       <polygon
         points="32,8 37.5,24 54,24 40.6,33.6 45.8,50 32,40 18.2,50 23.4,33.6 10,24 26.5,24"
         fill="#f6c445"
@@ -146,9 +152,9 @@ function StarIcon() {
   )
 }
 
-function TreeIcon() {
+function TreeIcon({ framed }: { framed: boolean }) {
   return (
-    <Icon backdrop="#e7f3e4">
+    <Icon backdrop="#e7f3e4" framed={framed}>
       <rect x="28" y="36" width="8" height="16" rx="2" fill="#8a5a32" />
       <circle cx="32" cy="28" r="14" fill="#5a9a45" />
       <circle cx="24" cy="32" r="8" fill="#6aaf52" />
@@ -157,9 +163,9 @@ function TreeIcon() {
   )
 }
 
-function BirdIcon() {
+function BirdIcon({ framed }: { framed: boolean }) {
   return (
-    <Icon backdrop="#fff0e4">
+    <Icon backdrop="#fff0e4" framed={framed}>
       <ellipse cx="28" cy="38" rx="16" ry="11" fill="#ef8b4c" />
       <circle cx="42" cy="28" r="9" fill="#ef8b4c" />
       <polygon points="49,28 60,23 51,33" fill="#f2c14e" />
@@ -176,24 +182,30 @@ function BirdIcon() {
   )
 }
 
-export function BoardImage({ id }: { id: BoardImageId }) {
+export function BoardImage({
+  id,
+  framed = false,
+}: {
+  id: BoardImageId
+  framed?: boolean
+}) {
   switch (id) {
     case 'cat':
-      return <CatIcon />
+      return <CatIcon framed={framed} />
     case 'ball':
-      return <BallIcon />
+      return <BallIcon framed={framed} />
     case 'sun':
-      return <SunIcon />
+      return <SunIcon framed={framed} />
     case 'flower':
-      return <FlowerIcon />
+      return <FlowerIcon framed={framed} />
     case 'fish':
-      return <FishIcon />
+      return <FishIcon framed={framed} />
     case 'star':
-      return <StarIcon />
+      return <StarIcon framed={framed} />
     case 'tree':
-      return <TreeIcon />
+      return <TreeIcon framed={framed} />
     case 'bird':
-      return <BirdIcon />
+      return <BirdIcon framed={framed} />
     default: {
       const unknown: never = id
       throw new Error(`Unknown image ${String(unknown)}`)
