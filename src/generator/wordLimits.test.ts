@@ -271,7 +271,7 @@ describe('SettingsPanel validation UI', () => {
     expect(html).not.toContain('בלי רשת')
     expect(html).toContain('תמונות על הלוח: 1')
     expect(html).toContain('aria-label="תמונות על הלוח"')
-    expect(html).toContain('max="9"')
+    expect(html).toContain('max="4"')
     expect(html).toContain('aria-label="מימין לשמאל"')
     expect(html).toContain('title="מימין לשמאל"')
     expect(html).toContain('direction-arrow')
@@ -332,8 +332,9 @@ describe('SettingsPanel validation UI', () => {
         generateDisabled: false,
       }),
     )
-    expect(html).toContain('תמונות על הלוח: 4')
-    expect(html).toContain('max="4"')
-    expect(html).toContain('עד 4 בלוח הזה')
+    expect(html).toContain('תמונות על הלוח: 1')
+    expect(html).toContain('max="1"')
+    expect(html).toContain('עד 1 בלוח הזה')
+    expect(html).toContain('בלי מגע, גם בפינה')
   })
 })

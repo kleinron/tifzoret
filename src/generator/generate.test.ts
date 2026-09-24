@@ -359,24 +359,23 @@ describe('generatePuzzle uniqueness', () => {
     if (result.ok) throw new Error('expected failure')
     expect(result.errorHe).toBe(imagePlacementErrorHe(5, 8))
     expect(result.errorHe).toContain('4×4')
-    expect(result.errorHe).toContain('לכל היותר 4')
+    expect(result.errorHe).toContain('לכל היותר 1')
   })
 
-  it('fails in Hebrew when pictures leave no room for a word', () => {
+  it('fails in Hebrew when two pictures cannot keep a gap on 8×8', () => {
     const result = generatePuzzle({
       size: 8,
       userWords: ['שמש'],
       directions: [...DEFAULT_DIRECTION_IDS],
       noFinalLetters: false,
       randomAge10Fill: false,
-      imageCount: 4,
+      imageCount: 2,
       seed: 1,
     })
     expect(result.ok).toBe(false)
     if (result.ok) throw new Error('expected failure')
-    expect(result.errorHe).toBe(
-      'אין מספיק משבצות פנויות למילים אחרי התמונות. הקטינו את מספר התמונות או הגדילו את הלוח.',
-    )
+    expect(result.errorHe).toBe(imagePlacementErrorHe(2, 8))
+    expect(result.errorHe).toContain('בלי מגע')
   })
 
   it('fails when no directions are selected', () => {

@@ -350,7 +350,7 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
   }
   if (imageCount > maxImageBlocks(size)) {
     return fail(
-      `Could not place ${imageCount} non-overlapping 4×4 image blocks on a ${size}×${size} grid.`,
+      `Could not place ${imageCount} separated 4×4 image blocks on a ${size}×${size} grid.`,
       imagePlacementErrorHe(imageCount, size),
     )
   }
@@ -439,7 +439,7 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
     const blocks = placeImageBlocks(size, imageCount, rng)
     if (!blocks) {
       return fail(
-        `Could not place ${imageCount} non-overlapping 4×4 image blocks on a ${size}×${size} grid.`,
+        `Could not place ${imageCount} separated 4×4 image blocks on a ${size}×${size} grid.`,
         imagePlacementErrorHe(imageCount, size),
         skips,
       )

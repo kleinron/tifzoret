@@ -238,8 +238,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
             </div>
           </label>
           <p className="hint">
-            כל תמונה מכסה 4×4 משבצות בלי אותיות. עד {maxImages} בלוח הזה, בלי
-            חפיפה. המיקום והציור מוגרלים מחדש ב«צור תפזורת» וב«ערבב מחדש».
+            כל תמונה מכסה 4×4 משבצות בלי אותיות. עד {maxImages} בלוח הזה, עם
+            משבצת ריקה בין התמונות (בלי מגע, גם בפינה). המיקום והציור מוגרלים
+            מחדש ב«צור תפזורת» וב«ערבב מחדש».
           </p>
           <label className="range">
             <span>גודל גופן: {props.fontSize}pt</span>
