@@ -433,7 +433,7 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
 
   if (words.length === 0) {
     return fail(
-      'No words to place. Add words or enable the age-10 filler.',
+      'No words to place. Add words or enable automatic fill.',
       `אין מילים לשיבוץ. הוסיפו מילים או הפעילו «${AGE10_FILL_LABEL}».`,
       skips,
     )
@@ -505,13 +505,9 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
     }
   }
 
-  const retryHint =
-    imageCount > 0
-      ? 'נסו רשת גדולה יותר, פחות מילים, פחות כיוונים, או פחות תמונות.'
-      : 'נסו רשת גדולה יותר, פחות מילים, או פחות כיוונים.'
   return fail(
     `Could not build a unique puzzle after ${maxPlacement} attempts.`,
-    `לא הצלחנו ליצור תפזורת שבה כל מילה מופיעה פעם אחת בלבד אחרי ${maxPlacement} ניסיונות. ${retryHint}`,
+    'לא הצלחנו לייצר את התפזורת הרצויה. נסו רשת גדולה יותר, פחות מילים, פחות כיוונים, או פחות תמונות.',
     skips,
   )
 }
