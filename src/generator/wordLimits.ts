@@ -61,7 +61,7 @@ export function messageRandomFillCapped(): string {
 }
 
 /** Setting name. Fill runs when a puzzle is built, not as its own action. */
-export const AGE10_FILL_LABEL = 'מילוי אוטומטי לגיל ~10'
+export const AGE10_FILL_LABEL = 'מילוי אוטומטי'
 
 export function growBoardCtaLabel(size: number): string {
   return `הגדל לוח ל־${size}`
@@ -194,7 +194,7 @@ export function extraFillCount(size: number, existingCount: number): number {
 export function age10FillHint(gridSize: number, existingCount: number): string {
   const extra = extraFillCount(gridSize, existingCount)
   if (extra <= 0) return 'כבר ביעד ללוח הזה — לא יתווספו מילים'
-  return `יוסיף עוד ${extra} מילים ידידותיות לגיל ~10`
+  return `יוסיף עוד ${extra} מילים`
 }
 
 export function formatRemainingDraft(words: readonly string[]): string {
