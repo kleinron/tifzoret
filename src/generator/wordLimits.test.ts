@@ -336,5 +336,7 @@ describe('SettingsPanel validation UI', () => {
     expect(html).toContain('max="2"')
     expect(html).toContain('עד 2 בלוח הזה')
     expect(html).toContain('מגע בפינה מותר')
+    expect(html).toContain('«ערבב מחדש» משאיר את התמונות שכבר על')
+    expect(html).toContain('שינוי הגדרות יוצר תפזורת')
   })
 })

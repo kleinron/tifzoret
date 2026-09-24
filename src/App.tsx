@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ImageCatalogModal } from './components/ImageCatalogModal.tsx'
 import { WordBank } from './components/WordBank.tsx'
 import { SettingsPanel } from './components/SettingsPanel.tsx'
@@ -11,6 +11,13 @@ import {
   type DirectionId,
 } from './generator/directions.ts'
 import { generatePuzzle, lettersAlong } from './generator/generate.ts'
+import {
+  imagePolicyForRefresh,
+  puzzleRefreshDelay,
+  puzzleSettingsKey,
+  refreshWordPlan,
+  type PuzzleRefresh,
+} from './generator/puzzleRefresh.ts'
 import {
   clampImageCount,
   DEFAULT_IMAGE_COUNT,
@@ -111,6 +118,31 @@ export default function App() {
   const [foundCells, setFoundCells] = useState<Map<string, string>>(new Map())
   const [catalogOpen, setCatalogOpen] = useState(false)
   const closeCatalog = useCallback(() => setCatalogOpen(false), [])
+  const actionRef = useRef<PuzzleRefresh>('settings')
+  const bootedRef = useRef(false)
+  const genIdRef = useRef(0)
+  const genTimerRef = useRef<number | null>(null)
+  const [manualNonce, setManualNonce] = useState(0)
+  const liveRef = useRef({
+    enabledDirs,
+    gridSize,
+    imageCount,
+    noFinals,
+    randomAge10,
+    bank,
+    puzzleWords,
+    imageBlocks,
+  })
+  liveRef.current = {
+    enabledDirs,
+    gridSize,
+    imageCount,
+    noFinals,
+    randomAge10,
+    bank,
+    puzzleWords,
+    imageBlocks,
+  }
 
   const toggleDirection = (id: DirectionId) => {
     setEnabledDirs((prev) => {
@@ -171,65 +203,78 @@ export default function App() {
     setBank((prev) => prev.filter((w) => w !== word))
   }
 
-  const runGenerate = useCallback(
-    (userWords: readonly string[], reshuffle = false) => {
-      setBusy(true)
-      setError(null)
-      window.setTimeout(() => {
-        const result = generatePuzzle({
-          size: gridSize,
-          userWords,
-          directions: [...enabledDirs],
-          noFinalLetters: noFinals,
-          randomAge10Fill: reshuffle ? false : randomAge10,
-          imageCount,
-        })
-        setBusy(false)
-        if (!result.ok) {
-          setError(result.errorHe)
-          return
-        }
-        const skipped: string[] = []
-        if (result.skippedFinals.length) {
-          skipped.push(`הוסרו בגלל אותיות סופיות: ${result.skippedFinals.join(', ')}`)
-        }
-        if (result.skippedContained.length) {
-          skipped.push(
-            `הוסרו כי הן מוכלות במילה אחרת: ${result.skippedContained.join(', ')}`,
-          )
-        }
-        if (result.skippedShort.length) {
-          skipped.push(`הוסרו מילים קצרות מדי: ${result.skippedShort.join(', ')}`)
-        }
-        if (result.skippedTooLong.length) {
-          skipped.push(`הוסרו כי ארוכות מהרשת: ${result.skippedTooLong.join(', ')}`)
-        }
-        if (result.skippedMaxLength.length) {
-          skipped.push(
-            `לא ניתן לשבץ מילים ארוכות מ־${MAX_WORD_LENGTH} אותיות: ${result.skippedMaxLength.join(', ')}`,
-          )
-        }
-        if (result.skippedOverCapacity.length) {
-          skipped.push(
-            `לא נוספו כי מחסן המילים מוגבל ל־${MAX_BANK_WORDS} מילים: ${result.skippedOverCapacity.join(', ')}`,
-          )
-        }
-        if (result.fillCappedAtMax) {
-          skipped.push(messageRandomFillCapped())
-        }
-        if (result.extraWords.length) {
-          skipped.push(`נוספו ${result.extraWords.length} מילים לגיל 10`)
-        }
-        setNotes(skipped)
-        setGrid(result.grid)
-        setImageBlocks(result.imageBlocks)
-        setPuzzleWords(result.words)
-        setFoundWords(new Set())
-        setFoundCells(new Map())
-      }, 30)
-    },
-    [enabledDirs, gridSize, imageCount, noFinals, randomAge10],
-  )
+  const requestGenerate = (action: PuzzleRefresh) => {
+    actionRef.current = action
+    setManualNonce((nonce) => nonce + 1)
+  }
+
+  const runGenerate = useCallback((action: PuzzleRefresh) => {
+    const live = liveRef.current
+    const plan = refreshWordPlan(action, live.bank, live.puzzleWords, live.randomAge10)
+    const imagePolicy = imagePolicyForRefresh(action, live.imageBlocks.length)
+    const snapshot = {
+      size: live.gridSize,
+      userWords: plan.words,
+      directions: [...live.enabledDirs],
+      noFinalLetters: live.noFinals,
+      randomAge10Fill: plan.randomAge10Fill,
+      imageCount: live.imageCount,
+      imagePolicy,
+      pinnedImageBlocks: imagePolicy === 'roll' ? undefined : live.imageBlocks,
+    }
+    const id = ++genIdRef.current
+    if (genTimerRef.current !== null) window.clearTimeout(genTimerRef.current)
+    setBusy(true)
+    setError(null)
+    genTimerRef.current = window.setTimeout(() => {
+      genTimerRef.current = null
+      if (genIdRef.current !== id) return
+      const result = generatePuzzle(snapshot)
+      if (genIdRef.current !== id) return
+      setBusy(false)
+      if (!result.ok) {
+        setError(result.errorHe)
+        return
+      }
+      const skipped: string[] = []
+      if (result.skippedFinals.length) {
+        skipped.push(`הוסרו בגלל אותיות סופיות: ${result.skippedFinals.join(', ')}`)
+      }
+      if (result.skippedContained.length) {
+        skipped.push(
+          `הוסרו כי הן מוכלות במילה אחרת: ${result.skippedContained.join(', ')}`,
+        )
+      }
+      if (result.skippedShort.length) {
+        skipped.push(`הוסרו מילים קצרות מדי: ${result.skippedShort.join(', ')}`)
+      }
+      if (result.skippedTooLong.length) {
+        skipped.push(`הוסרו כי ארוכות מהרשת: ${result.skippedTooLong.join(', ')}`)
+      }
+      if (result.skippedMaxLength.length) {
+        skipped.push(
+          `לא ניתן לשבץ מילים ארוכות מ־${MAX_WORD_LENGTH} אותיות: ${result.skippedMaxLength.join(', ')}`,
+        )
+      }
+      if (result.skippedOverCapacity.length) {
+        skipped.push(
+          `לא נוספו כי מחסן המילים מוגבל ל־${MAX_BANK_WORDS} מילים: ${result.skippedOverCapacity.join(', ')}`,
+        )
+      }
+      if (result.fillCappedAtMax) {
+        skipped.push(messageRandomFillCapped())
+      }
+      if (result.extraWords.length) {
+        skipped.push(`נוספו ${result.extraWords.length} מילים לגיל 10`)
+      }
+      setNotes(skipped)
+      setGrid(result.grid)
+      setImageBlocks(result.imageBlocks)
+      setPuzzleWords(result.words)
+      setFoundWords(new Set())
+      setFoundCells(new Map())
+    }, 30)
+  }, [])
 
   const onPathComplete = (cells: Cell[]) => {
     if (!grid) return
@@ -251,10 +296,31 @@ export default function App() {
     return `${puzzleWords.length} מילים · ${grid.length}×${grid.length}`
   }, [grid, puzzleWords.length])
 
+  const settingsKey = puzzleSettingsKey({
+    directions: [...enabledDirs],
+    gridSize,
+    imageCount,
+    bank,
+    randomAge10,
+    noFinals,
+  })
+
   useEffect(() => {
-    runGenerate(bank, false)
-    // First paint only — avoid regenerating when settings objects change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const delay = puzzleRefreshDelay(actionRef.current, bootedRef.current)
+    const timer = window.setTimeout(() => {
+      bootedRef.current = true
+      const action = actionRef.current
+      actionRef.current = 'settings'
+      runGenerate(action)
+    }, delay)
+    return () => window.clearTimeout(timer)
+  }, [settingsKey, manualNonce, runGenerate])
+
+  useEffect(() => {
+    return () => {
+      genIdRef.current += 1
+      if (genTimerRef.current !== null) window.clearTimeout(genTimerRef.current)
+    }
   }, [])
 
   useEffect(() => {
@@ -329,12 +395,11 @@ export default function App() {
           fontSize={fontSize}
           onFontSize={(value) => setFontSize(clamp(value, 12, 28, 18))}
           busy={busy}
-          onGenerate={() => runGenerate(mergeDraftIntoBank(), false)}
-          onReshuffle={() =>
-            // Keeps the current word list (no new age-10 draw) and re-rolls
-            // letter placement and image positions. Image count stays.
-            runGenerate(puzzleWords.length ? puzzleWords : bank, puzzleWords.length > 0)
-          }
+          onGenerate={() => {
+            mergeDraftIntoBank()
+            requestGenerate('fresh')
+          }}
+          onReshuffle={() => requestGenerate('reshuffle')}
         />
 
         <main className="center-col">
