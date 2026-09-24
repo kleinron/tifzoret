@@ -29,7 +29,6 @@ export type SettingsPanelProps = {
   issues: readonly FieldIssue[]
   onGrowBoard: (size: number) => void
   addDisabled: boolean
-  generateDisabled: boolean
   onRemoveWord: (word: string) => void
   randomAge10: boolean
   onRandomAge10: (value: boolean) => void
@@ -42,7 +41,6 @@ export type SettingsPanelProps = {
   fontSize: number
   onFontSize: (value: number) => void
   busy: boolean
-  onGenerate: () => void
   onReshuffle: () => void
 }
 
@@ -56,7 +54,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
 
   const atLimit = props.bank.length >= props.bankLimit
   const invalid = props.issues.length > 0
-  const generateOff = props.busy || props.generateDisabled
   const maxImages = maxImageBlocks(props.gridSize)
   const imageCount = clampImageCount(props.imageCount, props.gridSize)
 
@@ -240,8 +237,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
           <p className="hint">
             כל תמונה מכסה 4×4 משבצות בלי אותיות. עד {maxImages} בלוח הזה, בלי
             צלע משותפת (מגע בפינה מותר). «ערבב מחדש» משאיר את התמונות שכבר על
-            הלוח. «צור תפזורת» מגריל ציורים חדשים. שינוי הגדרות יוצר תפזורת
-            מיד, ומשאיר תמונות קיימות כל עוד הן נכנסות בלוח.
+            הלוח. שינוי הגדרות יוצר תפזורת מיד, ומשאיר תמונות קיימות כל עוד
+            הן נכנסות בלוח.
           </p>
           <label className="range">
             <span>גודל גופן: {props.fontSize}pt</span>
@@ -272,14 +269,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
       </div>
 
       <div className="actions">
-        <button
-          type="button"
-          className={props.busy ? 'primary is-busy' : 'primary'}
-          onClick={props.onGenerate}
-          disabled={generateOff}
-        >
-          {props.busy ? 'יוצר…' : 'צור תפזורת'}
-        </button>
         <button
           type="button"
           className={props.busy ? 'secondary is-busy' : 'secondary'}

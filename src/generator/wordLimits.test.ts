@@ -241,7 +241,6 @@ describe('SettingsPanel validation UI', () => {
     fontSize: 18,
     onFontSize: () => undefined,
     busy: false,
-    onGenerate: () => undefined,
     onReshuffle: () => undefined,
   }
 
@@ -252,9 +251,10 @@ describe('SettingsPanel validation UI', () => {
         ...base,
         issues: ui.issues,
         addDisabled: !ui.canAdd,
-        generateDisabled: !ui.inputValid,
       }),
     )
+    expect(html).not.toContain('צור תפזורת')
+    expect(html).toContain('ערבב מחדש')
     expect(html).toContain('המילה ארוכה מהלוח (12×12)')
     expect(html).toContain('הגדל לוח ל־14')
     expect(html).toContain('field-message-warning')
@@ -285,7 +285,7 @@ describe('SettingsPanel validation UI', () => {
     expect(html).not.toContain('>מימין לשמאל<')
   })
 
-  it('renders the 16-letter rejection in red without a grow CTA and disables add/generate', () => {
+  it('renders the 16-letter rejection in red without a grow CTA and disables add', () => {
     const ui = editorValidation([], LETTER_17, 12)
     const html = renderToStaticMarkup(
       createElement(SettingsPanel, {
@@ -294,17 +294,16 @@ describe('SettingsPanel validation UI', () => {
         bank: [],
         issues: ui.issues,
         addDisabled: !ui.canAdd,
-        generateDisabled: !ui.inputValid,
       }),
     )
     expect(html).toContain('עד 16 אותיות')
     expect(html).toContain('field-message-danger')
     expect(html).not.toContain('הגדל לוח')
-    expect(html).toMatch(/הוסף למחסן מילים[\s\S]*disabled/)
-    expect(html).toMatch(/צור תפזורת[\s\S]*disabled|disabled[\s\S]*צור תפזורת/)
+    expect(html).not.toContain('צור תפזורת')
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>הוסף למחסן מילים/)
   })
 
-  it('keeps add and generate enabled when the draft is empty and the bank is valid', () => {
+  it('keeps add disabled and reshuffle available when the draft is empty and the bank is valid', () => {
     const ui = editorValidation(['שמש'], '', 12)
     expect(ui.inputValid).toBe(true)
     expect(ui.canAdd).toBe(false)
@@ -314,11 +313,11 @@ describe('SettingsPanel validation UI', () => {
         draft: '',
         issues: ui.issues,
         addDisabled: !ui.canAdd,
-        generateDisabled: !ui.inputValid,
       }),
     )
     expect(html).toMatch(/<button[^>]*disabled[^>]*>הוסף למחסן מילים/)
-    expect(html).not.toMatch(/<button[^>]*disabled[^>]*>צור תפזורת/)
+    expect(html).toContain('ערבב מחדש')
+    expect(html).not.toMatch(/<button[^>]*disabled[^>]*>ערבב מחדש/)
   })
 
   it('caps תמונות על הלוח at how many 4×4 blocks fit', () => {
@@ -329,7 +328,6 @@ describe('SettingsPanel validation UI', () => {
         imageCount: 9,
         issues: [],
         addDisabled: false,
-        generateDisabled: false,
       }),
     )
     expect(html).toContain('תמונות על הלוח: 2')

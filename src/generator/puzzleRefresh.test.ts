@@ -11,14 +11,12 @@ describe('puzzle refresh rules', () => {
   it('debounces settings after the first build and runs explicit actions now', () => {
     expect(puzzleRefreshDelay('settings', false)).toBe(0)
     expect(puzzleRefreshDelay('settings', true)).toBe(SETTINGS_GENERATE_DEBOUNCE_MS)
-    expect(puzzleRefreshDelay('fresh', true)).toBe(0)
     expect(puzzleRefreshDelay('reshuffle', true)).toBe(0)
   })
 
   it('keeps pictures on reshuffle only when the board already has some', () => {
     expect(imagePolicyForRefresh('reshuffle', 2)).toBe('keep')
     expect(imagePolicyForRefresh('reshuffle', 0)).toBe('roll')
-    expect(imagePolicyForRefresh('fresh', 2)).toBe('roll')
     expect(imagePolicyForRefresh('settings', 2)).toBe('adapt')
     expect(imagePolicyForRefresh('settings', 0)).toBe('adapt')
   })
@@ -36,7 +34,7 @@ describe('puzzle refresh rules', () => {
       words: ['שמש'],
       randomAge10Fill: false,
     })
-    expect(refreshWordPlan('fresh', ['שמש', 'פרח'], ['שמש'], true)).toEqual({
+    expect(refreshWordPlan('settings', ['שמש', 'פרח'], ['שמש'], true)).toEqual({
       words: ['שמש', 'פרח'],
       randomAge10Fill: true,
     })

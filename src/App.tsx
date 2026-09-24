@@ -292,7 +292,7 @@ export default function App() {
   }
 
   const status = useMemo(() => {
-    if (!grid) return 'בחרו הגדרות ולחצו «צור תפזורת».'
+    if (!grid) return 'יוצר תפזורת…'
     return `${puzzleWords.length} מילים · ${grid.length}×${grid.length}`
   }, [grid, puzzleWords.length])
 
@@ -382,7 +382,6 @@ export default function App() {
           issues={validation.issues}
           onGrowBoard={growBoard}
           addDisabled={!validation.canAdd}
-          generateDisabled={!validation.inputValid}
           onRemoveWord={removeWord}
           randomAge10={randomAge10}
           onRandomAge10={setRandomAge10}
@@ -395,10 +394,6 @@ export default function App() {
           fontSize={fontSize}
           onFontSize={(value) => setFontSize(clamp(value, 12, 28, 18))}
           busy={busy}
-          onGenerate={() => {
-            mergeDraftIntoBank()
-            requestGenerate('fresh')
-          }}
           onReshuffle={() => requestGenerate('reshuffle')}
         />
 

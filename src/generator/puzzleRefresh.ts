@@ -1,7 +1,7 @@
 import type { ImagePolicy } from './imageBlocks.ts'
 
 /** Why the board is being built again. */
-export type PuzzleRefresh = 'settings' | 'fresh' | 'reshuffle'
+export type PuzzleRefresh = 'settings' | 'reshuffle'
 
 /**
  * Slider and paired number fields fire once per pixel. Wait this long after
@@ -10,7 +10,7 @@ export type PuzzleRefresh = 'settings' | 'fresh' | 'reshuffle'
 export const SETTINGS_GENERATE_DEBOUNCE_MS = 180
 
 /**
- * First paint and explicit «צור תפזורת» / «ערבב מחדש» run immediately.
+ * First paint and «ערבב מחדש» run immediately.
  * Later settings changes wait so a drag becomes one build.
  */
 export function puzzleRefreshDelay(action: PuzzleRefresh, booted: boolean): number {
@@ -19,14 +19,13 @@ export function puzzleRefreshDelay(action: PuzzleRefresh, booted: boolean): numb
 }
 
 /**
- * Reshuffle keeps pictures only once some are on the board. A fresh create
- * always re-rolls them. Settings keep what still fits (`adapt`).
+ * Reshuffle keeps pictures only once some are on the board.
+ * Settings keep what still fits (`adapt`).
  */
 export function imagePolicyForRefresh(
   action: PuzzleRefresh,
   existingPictureCount: number,
 ): ImagePolicy {
-  if (action === 'fresh') return 'roll'
   if (action === 'reshuffle') return existingPictureCount > 0 ? 'keep' : 'roll'
   return 'adapt'
 }

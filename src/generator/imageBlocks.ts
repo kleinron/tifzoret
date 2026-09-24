@@ -324,7 +324,7 @@ function pickImages(
 
 /**
  * How an existing set of pictures is treated on the next build.
- * - `roll` — ignore them and place `count` new blocks («צור תפזורת»).
+ * - `roll` — ignore them and place `count` new blocks.
  * - `keep` — same drawings, same cells («ערבב מחדש»), when that set is still legal.
  * - `adapt` — keep drawings that still fit, drop the rest, and fill up to `count`
  *   (a settings change).
