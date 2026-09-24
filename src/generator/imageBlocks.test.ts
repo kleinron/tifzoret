@@ -8,7 +8,7 @@ import {
   IMAGE_BLOCK_SIZE,
   imageBlockCells,
   imageBlocksOverlap,
-  imageBlocksTouch,
+  imageBlocksShareEdge,
   imagePlacementErrorHe,
   maxImageBlocks,
   placeImageBlocks,
@@ -16,17 +16,19 @@ import {
 import { mulberry32 } from './rng.ts'
 
 describe('maxImageBlocks', () => {
-  it('counts a lattice of 4×4 squares with a one-cell gap', () => {
+  it('counts blocks that may touch at a corner but not along an edge', () => {
     expect(IMAGE_BLOCK_SIZE).toBe(4)
     expect(DEFAULT_IMAGE_COUNT).toBe(1)
-    expect(maxImageBlocks(8)).toBe(1)
+    expect(maxImageBlocks(8)).toBe(2)
     expect(maxImageBlocks(9)).toBe(4)
     expect(maxImageBlocks(11)).toBe(4)
-    expect(maxImageBlocks(12)).toBe(4)
-    expect(maxImageBlocks(13)).toBe(4)
+    expect(maxImageBlocks(12)).toBe(5)
+    expect(maxImageBlocks(13)).toBe(6)
     expect(maxImageBlocks(14)).toBe(9)
     expect(maxImageBlocks(15)).toBe(9)
     expect(maxImageBlocks(16)).toBe(9)
+    expect(maxImageBlocks(17)).toBe(10)
+    expect(maxImageBlocks(18)).toBe(12)
     expect(maxImageBlocks(19)).toBe(16)
     expect(maxImageBlocks(20)).toBe(16)
     expect(maxImageBlocks(4)).toBe(1)
@@ -37,8 +39,8 @@ describe('maxImageBlocks', () => {
 
 describe('clampImageCount', () => {
   it('clamps to the board and keeps zero', () => {
-    expect(clampImageCount(9, 8)).toBe(1)
-    expect(clampImageCount(9, 12)).toBe(4)
+    expect(clampImageCount(9, 8)).toBe(2)
+    expect(clampImageCount(9, 12)).toBe(5)
     expect(clampImageCount(9, 14)).toBe(9)
     expect(clampImageCount(0, 12)).toBe(0)
     expect(clampImageCount(-4, 12)).toBe(0)
@@ -48,14 +50,6 @@ describe('clampImageCount', () => {
 })
 
 describe('placeImageBlocks', () => {
-  function axisGap(a: number, b: number): number {
-    const aEnd = a + IMAGE_BLOCK_SIZE
-    const bEnd = b + IMAGE_BLOCK_SIZE
-    if (aEnd <= b) return b - aEnd + 1
-    if (bEnd <= a) return a - bEnd + 1
-    return 0
-  }
-
   function assertPacked(
     blocks: NonNullable<ReturnType<typeof placeImageBlocks>>,
     size: number,
@@ -76,7 +70,7 @@ describe('placeImageBlocks', () => {
       for (let j = i + 1; j < blocks.length; j++) {
         expect(imageBlocksOverlap(blocks[i]!, blocks[j]!)).toBe(false)
         if (count >= 2) {
-          expect(imageBlocksTouch(blocks[i]!, blocks[j]!)).toBe(false)
+          expect(imageBlocksShareEdge(blocks[i]!, blocks[j]!)).toBe(false)
         }
       }
     }
@@ -95,21 +89,40 @@ describe('placeImageBlocks', () => {
   it('returns null when the count cannot fit', () => {
     expect(placeImageBlocks(8, 5, mulberry32(1))).toBeNull()
     expect(placeImageBlocks(12, -1, mulberry32(1))).toBeNull()
-    expect(placeImageBlocks(8, 2, mulberry32(1))).toBeNull()
+    expect(placeImageBlocks(8, 3, mulberry32(1))).toBeNull()
     expect(imagePlacementErrorHe(5, 8)).toBe(
-      'לא הצלחנו למקם 5 תמונות של 4×4 בלי מגע (גם בפינה) על לוח 8×8. אפשר לכל היותר 1.',
+      'לא הצלחנו למקם 5 תמונות של 4×4 בלי צלע משותפת על לוח 8×8. אפשר לכל היותר 2.',
     )
   })
 
-  it('rejects a shared edge, a partial edge, and a corner kiss', () => {
+  it('rejects a full or partial shared edge and accepts a corner', () => {
     const origin = { row: 0, col: 0 }
-    expect(imageBlocksTouch(origin, { row: 0, col: 4 })).toBe(true)
-    expect(imageBlocksTouch(origin, { row: 2, col: 4 })).toBe(true)
-    expect(imageBlocksTouch(origin, { row: 4, col: 4 })).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 0, col: 4 })).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 2, col: 4 })).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 1, col: 4 })).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 4, col: 0 })).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 4, col: 2 })).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 4, col: 4 })).toBe(false)
     expect(imageBlocksOverlap(origin, { row: 4, col: 4 })).toBe(false)
-    expect(imageBlocksTouch(origin, { row: 0, col: 5 })).toBe(false)
-    expect(imageBlocksTouch(origin, { row: 3, col: 5 })).toBe(false)
-    expect(imageBlocksTouch(origin, { row: 5, col: 5 })).toBe(false)
+    expect(imageBlocksShareEdge(origin, { row: 0, col: 5 })).toBe(false)
+    expect(imageBlocksShareEdge(origin, { row: 3, col: 5 })).toBe(false)
+    expect(imageBlocksShareEdge(origin, { row: 5, col: 5 })).toBe(false)
+  })
+
+  it('places the only two 8×8 layouts, which meet at a corner', () => {
+    const seen = new Set<string>()
+    for (let seed = 1; seed <= 24; seed++) {
+      const blocks = placeImageBlocks(8, 2, mulberry32(seed))
+      expect(blocks).not.toBeNull()
+      const origins = blocks!.map((block) => `${block.row},${block.col}`).sort()
+      expect(origins).toEqual(
+        origins[0] === '0,0' ? ['0,0', '4,4'] : ['0,4', '4,0'],
+      )
+      expect(imageBlocksShareEdge(blocks![0]!, blocks![1]!)).toBe(false)
+      expect(imageBlocksOverlap(blocks![0]!, blocks![1]!)).toBe(false)
+      seen.add(origins.join('|'))
+    }
+    expect(seen).toEqual(new Set(['0,0|4,4', '0,4|4,0']))
   })
 
   it('packs four gapped blocks on a 9×9 board at the only origins', () => {
@@ -125,8 +138,8 @@ describe('placeImageBlocks', () => {
     assertPacked(blocks!, 9, 4)
   })
 
-  it('places random in-bounds blocks that do not overlap', () => {
-    for (const size of [8, 12, 15, 20]) {
+  it('places random in-bounds blocks that do not share an edge', () => {
+    for (const size of [8, 12, 13, 15, 17, 18, 20]) {
       const max = maxImageBlocks(size)
       for (const count of [1, Math.ceil(max / 2), max]) {
         for (const seed of [1, 8, 42]) {
@@ -138,7 +151,7 @@ describe('placeImageBlocks', () => {
     }
   })
 
-  it('never lets two or three pictures share an edge or a corner', () => {
+  it('never shares an edge across many regenerations, including counts of two and three', () => {
     const cases = [
       { size: 12, count: 2 },
       { size: 12, count: 3 },
@@ -156,16 +169,6 @@ describe('placeImageBlocks', () => {
           .sort()
           .join('|')
         seen.add(signature)
-        for (let i = 0; i < blocks!.length; i++) {
-          for (let j = i + 1; j < blocks!.length; j++) {
-            const a = blocks![i]!
-            const b = blocks![j]!
-            const rowGap = axisGap(a.row, b.row)
-            const colGap = axisGap(a.col, b.col)
-            const chebyshev = Math.max(rowGap, colGap)
-            expect(chebyshev).toBeGreaterThanOrEqual(2)
-          }
-        }
       }
       expect(seen.size).toBeGreaterThan(3)
     }
