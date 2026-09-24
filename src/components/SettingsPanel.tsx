@@ -313,12 +313,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
             onCommit={props.onImageCount}
             format={(n) => `תמונות על הלוח: ${n}`}
           />
-          <p className="hint">
-            כל תמונה מכסה ריבוע לפי גודל הלוח (3×3 או 4×4) בלי אותיות. עד {maxImages} בלוח הזה, בלי
-            צלע משותפת (מגע בפינה מותר). כל ציור על הלוח שונה. «ערבב מחדש» משאיר את התמונות שכבר על
-            הלוח. שינוי הגדרות יוצר תפזורת מיד, ומשאיר תמונות קיימות כל עוד
-            הן נכנסות בלוח.
-          </p>
           <label className="range">
             <span>גודל גופן: {props.fontSize}pt</span>
             <div className="size-row">
