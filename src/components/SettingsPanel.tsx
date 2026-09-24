@@ -35,12 +35,23 @@ function CommittedSlider(props: {
 }) {
   const rangeRef = useRef<HTMLInputElement>(null)
   const finishRef = useRef<(() => void) | null>(null)
-  const [draft, setDraft] = useState<number | null>(null)
-  const shown = draft ?? props.value
+  const liveRef = useRef({
+    value: props.value,
+    min: props.min,
+    max: props.max,
+    onCommit: props.onCommit,
+  })
+  const [draft, setDraft] = useState<{ value: number; base: number } | null>(null)
+  const shown = draft !== null && draft.base === props.value ? draft.value : props.value
 
   useEffect(() => {
-    setDraft(null)
-  }, [props.value])
+    liveRef.current = {
+      value: props.value,
+      min: props.min,
+      max: props.max,
+      onCommit: props.onCommit,
+    }
+  }, [props.value, props.min, props.max, props.onCommit])
 
   useEffect(() => {
     return () => {
@@ -52,13 +63,15 @@ function CommittedSlider(props: {
   }, [])
 
   const commit = (raw: number) => {
-    const next = clampSlider(raw, props.min, props.max)
-    setDraft(null)
-    if (next === null || next === props.value) return
-    props.onCommit(next)
+    const live = liveRef.current
+    const next = clampSlider(raw, live.min, live.max)
+    if (next === null || next === live.value) {
+      setDraft(null)
+      return
+    }
+    setDraft({ value: next, base: live.value })
+    live.onCommit(next)
   }
-  const commitRef = useRef(commit)
-  commitRef.current = commit
 
   const armRelease = (event: ReactPointerEvent<HTMLInputElement>) => {
     if (finishRef.current) return
@@ -66,7 +79,7 @@ function CommittedSlider(props: {
       window.removeEventListener('pointerup', finish)
       window.removeEventListener('pointercancel', finish)
       finishRef.current = null
-      commitRef.current(Number(rangeRef.current?.value ?? event.currentTarget.value))
+      commit(Number(rangeRef.current?.value ?? event.currentTarget.value))
     }
     finishRef.current = finish
     window.addEventListener('pointerup', finish)
@@ -86,7 +99,7 @@ function CommittedSlider(props: {
           value={shown}
           onChange={(e) => {
             const next = clampSlider(Number(e.target.value), props.min, props.max)
-            if (next !== null) setDraft(next)
+            if (next !== null) setDraft({ value: next, base: props.value })
           }}
           onPointerDown={armRelease}
           onKeyUp={() => commit(Number(rangeRef.current?.value))}
@@ -101,8 +114,12 @@ function CommittedSlider(props: {
           onChange={(e) => {
             const next = Number(e.target.value)
             if (!Number.isFinite(next) || next < props.min || next > props.max) return
-            setDraft(null)
-            if (next !== props.value) props.onCommit(next)
+            if (next === props.value) {
+              setDraft(null)
+              return
+            }
+            setDraft({ value: next, base: props.value })
+            props.onCommit(next)
           }}
           aria-label={props.numberLabel}
         />
