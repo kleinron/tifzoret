@@ -452,6 +452,27 @@ describe('generatePuzzle uniqueness', () => {
     expect(shrunk.imageBlocks[0]!.col + 4).toBeLessThanOrEqual(8)
   })
 
+  it('asks to loosen the puzzle when placement cannot finish', () => {
+    const expected =
+      'לא הצלחנו לייצר את התפזורת הרצויה. נסו רשת גדולה יותר, פחות מילים, פחות כיוונים, או פחות תמונות.'
+    for (const imageCount of [0, 1]) {
+      const result = generatePuzzle({
+        size: 10,
+        userWords: ['שמש'],
+        directions: ['rtl'],
+        noFinalLetters: false,
+        randomAge10Fill: false,
+        imageCount,
+        maxPlacementAttempts: 0,
+        seed: 1,
+      })
+      expect(result.ok).toBe(false)
+      if (result.ok) throw new Error('expected failure')
+      expect(result.errorHe).toBe(expected)
+      expect(result.errorHe).not.toMatch(/ניסיונות|פעם אחת|גיל|~10/)
+    }
+  })
+
   it('fails when no directions are selected', () => {
     const result = generatePuzzle({
       size: 10,
