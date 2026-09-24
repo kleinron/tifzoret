@@ -10,8 +10,11 @@ import {
   imageBlocksOverlap,
   imageBlocksShareEdge,
   imagePlacementErrorHe,
+  keptImageBlocks,
   maxImageBlocks,
   placeImageBlocks,
+  resolveImageBlocks,
+  type ImageBlock,
 } from './imageBlocks.ts'
 import { mulberry32 } from './rng.ts'
 
@@ -184,6 +187,97 @@ describe('placeImageBlocks', () => {
     }
     expect(origins.size).toBeGreaterThan(3)
     expect(staggered).toBe(true)
+  })
+
+  it('keeps a legal set without drawing from the rng', () => {
+    const existing: ImageBlock[] = [
+      { imageId: 'cat', row: 0, col: 0 },
+      { imageId: 'sun', row: 4, col: 4 },
+    ]
+    let draws = 0
+    const rng = () => {
+      draws += 1
+      return 0.3
+    }
+    expect(keptImageBlocks(8, existing)).toEqual(existing)
+    expect(resolveImageBlocks(8, 2, rng, { policy: 'keep', existing })).toEqual(existing)
+    expect(resolveImageBlocks(8, 2, rng, { policy: 'adapt', existing })).toEqual(existing)
+    expect(draws).toBe(0)
+  })
+
+  it('rejects a shared edge, an unknown drawing, and a block past the board', () => {
+    expect(
+      keptImageBlocks(12, [
+        { imageId: 'cat', row: 0, col: 0 },
+        { imageId: 'sun', row: 0, col: 4 },
+      ]),
+    ).toBeNull()
+    expect(keptImageBlocks(12, [{ imageId: 'nope' as ImageBlock['imageId'], row: 0, col: 0 }])).toBeNull()
+    expect(keptImageBlocks(8, [{ imageId: 'fish', row: 5, col: 0 }])).toBeNull()
+    expect(keptImageBlocks(12, [])).toBeNull()
+  })
+
+  it('adds a corner partner beside a picture that stays put', () => {
+    const existing: ImageBlock[] = [{ imageId: 'cat', row: 0, col: 0 }]
+    const blocks = resolveImageBlocks(8, 2, mulberry32(1), {
+      policy: 'adapt',
+      existing,
+    })
+    expect(blocks).toEqual([
+      existing[0],
+      expect.objectContaining({ row: 4, col: 4 }),
+    ])
+    expect(imageBlocksShareEdge(blocks![0]!, blocks![1]!)).toBe(false)
+  })
+
+  it('drops a picture that blocks the requested count and places a legal set', () => {
+    const blocks = resolveImageBlocks(8, 2, mulberry32(4), {
+      policy: 'adapt',
+      existing: [{ imageId: 'cat', row: 2, col: 2 }],
+    })
+    expect(blocks).not.toBeNull()
+    assertPacked(blocks!, 8, 2)
+    expect(blocks!.some((block) => block.row === 2 && block.col === 2)).toBe(false)
+  })
+
+  it('trims to the requested count and skips a block that no longer fits', () => {
+    const first: ImageBlock = { imageId: 'cat', row: 0, col: 0 }
+    const second: ImageBlock = { imageId: 'sun', row: 0, col: 5 }
+    const trimmed = resolveImageBlocks(12, 1, mulberry32(2), {
+      policy: 'adapt',
+      existing: [first, second],
+    })
+    expect(trimmed).toEqual([first])
+
+    let draws = 0
+    const cleared = resolveImageBlocks(
+      12,
+      0,
+      () => {
+        draws += 1
+        return 0.5
+      },
+      { policy: 'adapt', existing: [first, second] },
+    )
+    expect(cleared).toEqual([])
+    expect(draws).toBe(0)
+
+    const replaced = resolveImageBlocks(8, 1, mulberry32(6), {
+      policy: 'adapt',
+      existing: [{ imageId: 'fish', row: 5, col: 0 }, first],
+    })
+    expect(replaced).toEqual([first])
+  })
+
+  it('rolls the same blocks as a fresh placement', () => {
+    for (const seed of [1, 2, 7, 99]) {
+      expect(resolveImageBlocks(12, 3, mulberry32(seed), { policy: 'roll' })).toEqual(
+        placeImageBlocks(12, 3, mulberry32(seed)),
+      )
+      expect(resolveImageBlocks(12, 3, mulberry32(seed))).toEqual(
+        placeImageBlocks(12, 3, mulberry32(seed)),
+      )
+    }
   })
 
   it('cycles drawings so the first catalog pass has no repeats', () => {

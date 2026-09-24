@@ -60,7 +60,7 @@ export function messageRandomFillCapped(): string {
   return `השלמה אקראית הופסקה במקסימום ${MAX_BANK_WORDS} מילים במחסן.`
 }
 
-/** Setting name. Fill runs on «צור», not as its own action. */
+/** Setting name. Fill runs when a puzzle is built, not as its own action. */
 export const AGE10_FILL_LABEL = 'מילוי אוטומטי לגיל ~10'
 
 export function growBoardCtaLabel(size: number): string {

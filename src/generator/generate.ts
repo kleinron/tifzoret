@@ -19,9 +19,11 @@ import {
   blockedCellKeys,
   IMAGE_BLOCK_SIZE,
   imagePlacementErrorHe,
+  keptImageBlocks,
   maxImageBlocks,
-  placeImageBlocks,
+  resolveImageBlocks,
   type ImageBlock,
+  type ImagePolicy,
 } from './imageBlocks.ts'
 import { mulberry32, pickIndex, shuffle } from './rng.ts'
 import {
@@ -49,6 +51,16 @@ export type GenerateRequest = {
    * stay letter-only. The app setting defaults to 1.
    */
   imageCount?: number
+  /**
+   * What to do with {@link pinnedImageBlocks}. Omitted means `roll`: place
+   * `imageCount` new pictures, same as before pictures could be pinned.
+   */
+  imagePolicy?: ImagePolicy
+  /**
+   * Pictures already on the board. `keep` reuses them when they still fit.
+   * `adapt` keeps what it can and fills up to `imageCount`.
+   */
+  pinnedImageBlocks?: readonly ImageBlock[]
   seed?: number
   rng?: () => number
   maxPlacementAttempts?: number
@@ -341,7 +353,13 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
     )
   }
 
-  const imageCount = request.imageCount ?? 0
+  const policy: ImagePolicy = request.imagePolicy ?? 'roll'
+  const pinned = request.pinnedImageBlocks ?? []
+  // A legal keep is fixed for every attempt and does not draw from `rng`.
+  const kept = policy === 'keep' ? keptImageBlocks(size, pinned) : null
+  const imageCount = kept ? kept.length : (request.imageCount ?? 0)
+  const fallbackPolicy: ImagePolicy =
+    policy === 'keep' ? (pinned.length > 0 ? 'adapt' : 'roll') : policy
   if (!Number.isInteger(imageCount) || imageCount < 0) {
     return fail(
       'Image count must be zero or more.',
@@ -436,7 +454,12 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
   const maxRepair = request.maxRepairAttempts ?? DEFAULT_MAX_REPAIR
 
   for (let attempt = 1; attempt <= maxPlacement; attempt++) {
-    const blocks = placeImageBlocks(size, imageCount, rng)
+    const blocks =
+      kept ??
+      resolveImageBlocks(size, imageCount, rng, {
+        policy: fallbackPolicy,
+        existing: pinned,
+      })
     if (!blocks) {
       return fail(
         `Could not place ${imageCount} 4×4 image blocks without a shared edge on a ${size}×${size} grid.`,

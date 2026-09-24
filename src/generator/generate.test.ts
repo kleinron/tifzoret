@@ -9,7 +9,9 @@ import {
 import {
   BLOCKED_CELL,
   imageBlockCells,
+  imageBlocksShareEdge,
   imagePlacementErrorHe,
+  type ImageBlock,
 } from './imageBlocks.ts'
 import {
   filterBankWords,
@@ -376,6 +378,78 @@ describe('generatePuzzle uniqueness', () => {
     if (result.ok) throw new Error('expected failure')
     expect(result.errorHe).toBe(imagePlacementErrorHe(3, 8))
     expect(result.errorHe).toContain('צלע משותפת')
+  })
+
+  it('keeps pinned pictures on reshuffle while letters can change', () => {
+    const pinned: ImageBlock[] = [
+      { imageId: 'cat', row: 0, col: 0 },
+      { imageId: 'sun', row: 5, col: 5 },
+    ]
+    const request = {
+      size: 12,
+      userWords: ['שמש', 'ירח', 'ספר', 'פרח', 'כדור'],
+      directions: [...DEFAULT_DIRECTION_IDS],
+      noFinalLetters: false,
+      randomAge10Fill: false,
+      imageCount: 2,
+      imagePolicy: 'keep' as const,
+      pinnedImageBlocks: pinned,
+    }
+    const grids = new Set<string>()
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const result = success(generatePuzzle({ ...request, seed }))
+      expect(result.imageBlocks).toEqual(pinned)
+      for (const block of result.imageBlocks) {
+        for (const cell of imageBlockCells(block)) {
+          expect(result.grid[cell.row]![cell.col]).toBe(BLOCKED_CELL)
+        }
+      }
+      for (const placement of result.placements) {
+        for (const cell of placement.cells) {
+          expect(result.grid[cell.row]![cell.col]).not.toBe(BLOCKED_CELL)
+        }
+      }
+      grids.add(JSON.stringify(result.grid))
+    }
+    expect(grids.size).toBeGreaterThan(1)
+  })
+
+  it('adapts pictures when the count grows and when a block no longer fits', () => {
+    const pinned: ImageBlock[] = [{ imageId: 'flower', row: 1, col: 2 }]
+    const grown = success(
+      generatePuzzle({
+        size: 12,
+        userWords: ['שמש', 'ירח', 'ספר'],
+        directions: [...DEFAULT_DIRECTION_IDS],
+        noFinalLetters: false,
+        randomAge10Fill: false,
+        imageCount: 2,
+        imagePolicy: 'adapt',
+        pinnedImageBlocks: pinned,
+        seed: 11,
+      }),
+    )
+    expect(grown.imageBlocks[0]).toEqual(pinned[0])
+    expect(grown.imageBlocks).toHaveLength(2)
+    expect(imageBlocksShareEdge(grown.imageBlocks[0]!, grown.imageBlocks[1]!)).toBe(false)
+
+    const shrunk = success(
+      generatePuzzle({
+        size: 8,
+        userWords: ['שמש', 'ירח'],
+        directions: ['rtl'],
+        noFinalLetters: false,
+        randomAge10Fill: false,
+        imageCount: 1,
+        imagePolicy: 'adapt',
+        pinnedImageBlocks: [{ imageId: 'fish', row: 6, col: 6 }],
+        seed: 3,
+      }),
+    )
+    expect(shrunk.imageBlocks).toHaveLength(1)
+    expect(shrunk.imageBlocks[0]).not.toEqual({ imageId: 'fish', row: 6, col: 6 })
+    expect(shrunk.imageBlocks[0]!.row + 4).toBeLessThanOrEqual(8)
+    expect(shrunk.imageBlocks[0]!.col + 4).toBeLessThanOrEqual(8)
   })
 
   it('fails when no directions are selected', () => {

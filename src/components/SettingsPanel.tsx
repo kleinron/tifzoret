@@ -1,4 +1,4 @@
-import type { ClipboardEvent } from 'react'
+import { useEffect, useRef, useState, type ClipboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { DirectionArrow } from './actionIcons.tsx'
 import {
   directionArrowRotation,
@@ -15,6 +15,119 @@ import {
   MAX_WORD_LENGTH,
 } from '../generator/wordLimits.ts'
 
+function clampSlider(raw: number, min: number, max: number): number | null {
+  if (!Number.isFinite(raw)) return null
+  return Math.min(max, Math.max(min, Math.round(raw)))
+}
+
+/**
+ * Range that previews while the thumb moves and commits once, on release.
+ * React's onChange follows every input event, so a drag must not call onCommit
+ * until pointerup / keyup. The paired number field commits on each typed value.
+ */
+function CommittedSlider(props: {
+  min: number
+  max: number
+  value: number
+  numberLabel: string
+  onCommit: (value: number) => void
+  format: (value: number) => string
+}) {
+  const rangeRef = useRef<HTMLInputElement>(null)
+  const finishRef = useRef<(() => void) | null>(null)
+  const liveRef = useRef({
+    value: props.value,
+    min: props.min,
+    max: props.max,
+    onCommit: props.onCommit,
+  })
+  const [draft, setDraft] = useState<{ value: number; base: number } | null>(null)
+  const shown = draft !== null && draft.base === props.value ? draft.value : props.value
+
+  useEffect(() => {
+    liveRef.current = {
+      value: props.value,
+      min: props.min,
+      max: props.max,
+      onCommit: props.onCommit,
+    }
+  }, [props.value, props.min, props.max, props.onCommit])
+
+  useEffect(() => {
+    return () => {
+      if (!finishRef.current) return
+      window.removeEventListener('pointerup', finishRef.current)
+      window.removeEventListener('pointercancel', finishRef.current)
+      finishRef.current = null
+    }
+  }, [])
+
+  const commit = (raw: number) => {
+    const live = liveRef.current
+    const next = clampSlider(raw, live.min, live.max)
+    if (next === null || next === live.value) {
+      setDraft(null)
+      return
+    }
+    setDraft({ value: next, base: live.value })
+    live.onCommit(next)
+  }
+
+  const armRelease = (event: ReactPointerEvent<HTMLInputElement>) => {
+    if (finishRef.current) return
+    const finish = () => {
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
+      finishRef.current = null
+      commit(Number(rangeRef.current?.value ?? event.currentTarget.value))
+    }
+    finishRef.current = finish
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', finish)
+  }
+
+  return (
+    <label className="range">
+      <span>{props.format(shown)}</span>
+      <div className="size-row">
+        <input
+          ref={rangeRef}
+          type="range"
+          min={props.min}
+          max={props.max}
+          step={1}
+          value={shown}
+          onChange={(e) => {
+            const next = clampSlider(Number(e.target.value), props.min, props.max)
+            if (next !== null) setDraft({ value: next, base: props.value })
+          }}
+          onPointerDown={armRelease}
+          onKeyUp={() => commit(Number(rangeRef.current?.value))}
+          onBlur={() => commit(Number(rangeRef.current?.value))}
+        />
+        <input
+          type="number"
+          min={props.min}
+          max={props.max}
+          step={1}
+          value={shown}
+          onChange={(e) => {
+            const next = Number(e.target.value)
+            if (!Number.isFinite(next) || next < props.min || next > props.max) return
+            if (next === props.value) {
+              setDraft(null)
+              return
+            }
+            setDraft({ value: next, base: props.value })
+            props.onCommit(next)
+          }}
+          aria-label={props.numberLabel}
+        />
+      </div>
+    </label>
+  )
+}
+
 export type SettingsPanelProps = {
   directions: readonly Direction[]
   enabled: ReadonlySet<DirectionId>
@@ -29,7 +142,6 @@ export type SettingsPanelProps = {
   issues: readonly FieldIssue[]
   onGrowBoard: (size: number) => void
   addDisabled: boolean
-  generateDisabled: boolean
   onRemoveWord: (word: string) => void
   randomAge10: boolean
   onRandomAge10: (value: boolean) => void
@@ -42,7 +154,6 @@ export type SettingsPanelProps = {
   fontSize: number
   onFontSize: (value: number) => void
   busy: boolean
-  onGenerate: () => void
   onReshuffle: () => void
 }
 
@@ -56,7 +167,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
 
   const atLimit = props.bank.length >= props.bankLimit
   const invalid = props.issues.length > 0
-  const generateOff = props.busy || props.generateDisabled
   const maxImages = maxImageBlocks(props.gridSize)
   const imageCount = clampImageCount(props.imageCount, props.gridSize)
 
@@ -187,60 +297,27 @@ export function SettingsPanel(props: SettingsPanelProps) {
 
         <fieldset className="block">
           <legend>גודל</legend>
-          <label className="range">
-            <span>גודל רשת: {props.gridSize}×{props.gridSize}</span>
-            <div className="size-row">
-              <input
-                type="range"
-                min={8}
-                max={20}
-                step={1}
-                value={props.gridSize}
-                onChange={(e) => props.onGridSize(Number(e.target.value))}
-              />
-              <input
-                type="number"
-                min={8}
-                max={20}
-                step={1}
-                value={props.gridSize}
-                onChange={(e) => {
-                  const n = Number(e.target.value)
-                  if (n >= 8 && n <= 20) props.onGridSize(n)
-                }}
-                aria-label="גודל רשת"
-              />
-            </div>
-          </label>
-          <label className="range">
-            <span>תמונות על הלוח: {imageCount}</span>
-            <div className="size-row">
-              <input
-                type="range"
-                min={0}
-                max={maxImages}
-                step={1}
-                value={imageCount}
-                onChange={(e) => props.onImageCount(Number(e.target.value))}
-              />
-              <input
-                type="number"
-                min={0}
-                max={maxImages}
-                step={1}
-                value={imageCount}
-                onChange={(e) => {
-                  const n = Number(e.target.value)
-                  if (n >= 0 && n <= maxImages) props.onImageCount(n)
-                }}
-                aria-label="תמונות על הלוח"
-              />
-            </div>
-          </label>
+          <CommittedSlider
+            min={8}
+            max={20}
+            value={props.gridSize}
+            numberLabel="גודל רשת"
+            onCommit={props.onGridSize}
+            format={(n) => `גודל רשת: ${n}×${n}`}
+          />
+          <CommittedSlider
+            min={0}
+            max={maxImages}
+            value={imageCount}
+            numberLabel="תמונות על הלוח"
+            onCommit={props.onImageCount}
+            format={(n) => `תמונות על הלוח: ${n}`}
+          />
           <p className="hint">
             כל תמונה מכסה 4×4 משבצות בלי אותיות. עד {maxImages} בלוח הזה, בלי
-            צלע משותפת (מגע בפינה מותר). המיקום והציור מוגרלים מחדש ב«צור
-            תפזורת» וב«ערבב מחדש».
+            צלע משותפת (מגע בפינה מותר). «ערבב מחדש» משאיר את התמונות שכבר על
+            הלוח. שינוי הגדרות יוצר תפזורת מיד, ומשאיר תמונות קיימות כל עוד
+            הן נכנסות בלוח.
           </p>
           <label className="range">
             <span>גודל גופן: {props.fontSize}pt</span>
@@ -271,14 +348,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
       </div>
 
       <div className="actions">
-        <button
-          type="button"
-          className={props.busy ? 'primary is-busy' : 'primary'}
-          onClick={props.onGenerate}
-          disabled={generateOff}
-        >
-          {props.busy ? 'יוצר…' : 'צור תפזורת'}
-        </button>
         <button
           type="button"
           className={props.busy ? 'secondary is-busy' : 'secondary'}
