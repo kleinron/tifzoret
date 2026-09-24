@@ -11,6 +11,7 @@ import {
   imageBlockCells,
   imageBlocksShareEdge,
   imagePlacementErrorHe,
+  pictureBlockSize,
   type ImageBlock,
 } from './imageBlocks.ts'
 import {
@@ -291,7 +292,7 @@ describe('generatePuzzle uniqueness', () => {
     expect(result.imageBlocks).toHaveLength(2)
     const blocked = new Set<string>()
     for (const block of result.imageBlocks) {
-      for (const cell of imageBlockCells(block)) {
+      for (const cell of imageBlockCells(block, 12)) {
         const key = `${cell.row},${cell.col}`
         expect(blocked.has(key)).toBe(false)
         blocked.add(key)
@@ -347,7 +348,7 @@ describe('generatePuzzle uniqueness', () => {
     }
   })
 
-  it('fails in Hebrew when the 4×4 blocks cannot fit', () => {
+  it('fails in Hebrew when the picture blocks cannot fit', () => {
     const result = generatePuzzle({
       size: 8,
       userWords: ['שמש'],
@@ -360,24 +361,51 @@ describe('generatePuzzle uniqueness', () => {
     expect(result.ok).toBe(false)
     if (result.ok) throw new Error('expected failure')
     expect(result.errorHe).toBe(imagePlacementErrorHe(5, 8))
-    expect(result.errorHe).toContain('4×4')
-    expect(result.errorHe).toContain('לכל היותר 2')
-  })
+    expect(result.errorHe).toContain('3×3')
+    expect(result.errorHe).toContain('לכל היותר 4')
 
-  it('fails in Hebrew when three pictures cannot avoid a shared edge on 8×8', () => {
-    const result = generatePuzzle({
-      size: 8,
+    const wide = generatePuzzle({
+      size: 12,
       userWords: ['שמש'],
       directions: [...DEFAULT_DIRECTION_IDS],
       noFinalLetters: false,
       randomAge10Fill: false,
-      imageCount: 3,
+      imageCount: 6,
       seed: 1,
     })
-    expect(result.ok).toBe(false)
-    if (result.ok) throw new Error('expected failure')
-    expect(result.errorHe).toBe(imagePlacementErrorHe(3, 8))
-    expect(result.errorHe).toContain('צלע משותפת')
+    expect(wide.ok).toBe(false)
+    if (wide.ok) throw new Error('expected failure')
+    expect(wide.errorHe).toBe(imagePlacementErrorHe(6, 12))
+    expect(wide.errorHe).toContain('4×4')
+    expect(wide.errorHe).toContain('לכל היותר 5')
+  })
+
+  it('places three 3×3 pictures on an 8×8 board without a shared edge', () => {
+    const result = success(
+      generatePuzzle({
+        size: 8,
+        userWords: ['שמש'],
+        directions: [...DEFAULT_DIRECTION_IDS],
+        noFinalLetters: false,
+        randomAge10Fill: false,
+        imageCount: 3,
+        seed: 1,
+      }),
+    )
+    expect(result.imageBlocks).toHaveLength(3)
+    const blocked = new Set<string>()
+    for (const block of result.imageBlocks) {
+      for (const cell of imageBlockCells(block, 8)) {
+        blocked.add(`${cell.row},${cell.col}`)
+        expect(result.grid[cell.row]![cell.col]).toBe(BLOCKED_CELL)
+      }
+    }
+    expect(blocked.size).toBe(3 * pictureBlockSize(8) * pictureBlockSize(8))
+    for (let i = 0; i < result.imageBlocks.length; i++) {
+      for (let j = i + 1; j < result.imageBlocks.length; j++) {
+        expect(imageBlocksShareEdge(result.imageBlocks[i]!, result.imageBlocks[j]!, 8)).toBe(false)
+      }
+    }
   })
 
   it('keeps pinned pictures on reshuffle while letters can change', () => {
@@ -400,7 +428,7 @@ describe('generatePuzzle uniqueness', () => {
       const result = success(generatePuzzle({ ...request, seed }))
       expect(result.imageBlocks).toEqual(pinned)
       for (const block of result.imageBlocks) {
-        for (const cell of imageBlockCells(block)) {
+        for (const cell of imageBlockCells(block, 12)) {
           expect(result.grid[cell.row]![cell.col]).toBe(BLOCKED_CELL)
         }
       }
@@ -431,7 +459,7 @@ describe('generatePuzzle uniqueness', () => {
     )
     expect(grown.imageBlocks[0]).toEqual(pinned[0])
     expect(grown.imageBlocks).toHaveLength(2)
-    expect(imageBlocksShareEdge(grown.imageBlocks[0]!, grown.imageBlocks[1]!)).toBe(false)
+    expect(imageBlocksShareEdge(grown.imageBlocks[0]!, grown.imageBlocks[1]!, 12)).toBe(false)
 
     const shrunk = success(
       generatePuzzle({
@@ -448,8 +476,8 @@ describe('generatePuzzle uniqueness', () => {
     )
     expect(shrunk.imageBlocks).toHaveLength(1)
     expect(shrunk.imageBlocks[0]).not.toEqual({ imageId: 'fish', row: 6, col: 6 })
-    expect(shrunk.imageBlocks[0]!.row + 4).toBeLessThanOrEqual(8)
-    expect(shrunk.imageBlocks[0]!.col + 4).toBeLessThanOrEqual(8)
+    expect(shrunk.imageBlocks[0]!.row + pictureBlockSize(8)).toBeLessThanOrEqual(8)
+    expect(shrunk.imageBlocks[0]!.col + pictureBlockSize(8)).toBeLessThanOrEqual(8)
   })
 
   it('asks to loosen the puzzle when placement cannot finish', () => {

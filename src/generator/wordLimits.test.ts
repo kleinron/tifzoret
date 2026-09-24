@@ -321,7 +321,7 @@ describe('SettingsPanel validation UI', () => {
     expect(html).not.toMatch(/<button[^>]*disabled[^>]*>ערבב מחדש/)
   })
 
-  it('caps תמונות על הלוח at how many 4×4 blocks fit', () => {
+  it('caps תמונות על הלוח at how many picture blocks fit', () => {
     const html = renderToStaticMarkup(
       createElement(SettingsPanel, {
         ...base,
@@ -331,9 +331,11 @@ describe('SettingsPanel validation UI', () => {
         addDisabled: false,
       }),
     )
-    expect(html).toContain('תמונות על הלוח: 2')
-    expect(html).toContain('max="2"')
-    expect(html).toContain('עד 2 בלוח הזה')
+    expect(html).toContain('תמונות על הלוח: 4')
+    expect(html).toContain('max="4"')
+    expect(html).toContain('כל תמונה מכסה ריבוע לפי גודל הלוח (3×3 או 4×4)')
+    expect(html).not.toContain('מכסה 4×4')
+    expect(html).toContain('עד 4 בלוח הזה')
     expect(html).toContain('מגע בפינה מותר')
     expect(html).toContain('«ערבב מחדש» משאיר את התמונות שכבר על')
     expect(html).toContain('שינוי הגדרות יוצר תפזורת')

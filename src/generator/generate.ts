@@ -17,10 +17,11 @@ import {
 import {
   BLOCKED_CELL,
   blockedCellKeys,
-  IMAGE_BLOCK_SIZE,
+  imageBlockCells,
   imagePlacementErrorHe,
   keptImageBlocks,
   maxImageBlocks,
+  pictureBlockSize,
   resolveImageBlocks,
   type ImageBlock,
   type ImagePolicy,
@@ -47,8 +48,9 @@ export type GenerateRequest = {
   noFinalLetters: boolean
   randomAge10Fill: boolean
   /**
-   * How many 4×4 pictures to block out. Omitted means 0 so older callers
-   * stay letter-only. The app setting defaults to 1.
+   * How many pictures to block out. Each one covers a square from
+   * {@link pictureBlockSize}. Omitted means 0 so older callers stay
+   * letter-only. The app setting defaults to 1.
    */
   imageCount?: number
   /**
@@ -295,11 +297,10 @@ function stampBlocked(
   grid: (string | null)[][],
   blocks: readonly ImageBlock[],
 ): void {
+  const boardSize = grid.length
   for (const block of blocks) {
-    for (let row = 0; row < IMAGE_BLOCK_SIZE; row++) {
-      for (let col = 0; col < IMAGE_BLOCK_SIZE; col++) {
-        grid[block.row + row]![block.col + col] = BLOCKED_CELL
-      }
+    for (const cell of imageBlockCells(block, boardSize)) {
+      grid[cell.row]![cell.col] = BLOCKED_CELL
     }
   }
 }
@@ -366,9 +367,10 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
       'מספר התמונות חייב להיות אפס או יותר.',
     )
   }
+  const span = pictureBlockSize(size)
   if (imageCount > maxImageBlocks(size)) {
     return fail(
-      `Could not place ${imageCount} 4×4 image blocks without a shared edge on a ${size}×${size} grid.`,
+      `Could not place ${imageCount} ${span}×${span} image blocks without a shared edge on a ${size}×${size} grid.`,
       imagePlacementErrorHe(imageCount, size),
     )
   }
@@ -439,7 +441,7 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
     )
   }
 
-  const freeCells = size * size - imageCount * IMAGE_BLOCK_SIZE * IMAGE_BLOCK_SIZE
+  const freeCells = size * size - imageCount * span * span
   const shortest = words.reduce((min, word) => Math.min(min, word.length), words[0]!.length)
   if (freeCells < shortest) {
     return fail(
@@ -462,13 +464,13 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
       })
     if (!blocks) {
       return fail(
-        `Could not place ${imageCount} 4×4 image blocks without a shared edge on a ${size}×${size} grid.`,
+        `Could not place ${imageCount} ${span}×${span} image blocks without a shared edge on a ${size}×${size} grid.`,
         imagePlacementErrorHe(imageCount, size),
         skips,
       )
     }
 
-    const blocked = blockedCellKeys(blocks)
+    const blocked = blockedCellKeys(blocks, size)
     const placements = placeWords(size, words, directions, rng, blocked)
     if (!placements) continue
 

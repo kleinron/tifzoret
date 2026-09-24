@@ -4,8 +4,13 @@ import {
 } from '../images/catalog.ts'
 import { pickIndex, shuffle } from './rng.ts'
 
-/** Each picture covers a square of this many cells on a side. */
-export const IMAGE_BLOCK_SIZE = 4
+/**
+ * Side of each picture square, in cells.
+ * Boards of side 10 and under use 3×3; larger boards use 4×4.
+ */
+export function pictureBlockSize(boardSize: number): number {
+  return boardSize <= 10 ? 3 : 4
+}
 
 /**
  * Empty cells required along a shared edge once two or more pictures are
@@ -29,10 +34,11 @@ export type ImageBlock = {
 }
 
 /**
- * Packings tighter than a plain stride-5 grid or a stride-4 checkerboard.
+ * 4×4 packings tighter than a plain stride-5 grid or a stride-4 checkerboard.
  * Each list is a maximum set of origins whose blocks never share an edge.
+ * Used only when {@link pictureBlockSize} is 4.
  */
-const SPECIAL_EDGE_PACKINGS: Record<number, readonly { row: number; col: number }[]> = {
+const SPECIAL_EDGE_PACKINGS_4: Record<number, readonly { row: number; col: number }[]> = {
   13: [
     { row: 0, col: 0 },
     { row: 0, col: 5 },
@@ -69,31 +75,56 @@ const SPECIAL_EDGE_PACKINGS: Record<number, readonly { row: number; col: number 
   ],
 }
 
-function latticeCount(gridSize: number, stride: number): number {
-  if (gridSize < IMAGE_BLOCK_SIZE) return 0
-  const across = Math.floor((gridSize - IMAGE_BLOCK_SIZE) / stride) + 1
+/**
+ * 3×3 packing tighter than the stride-3 checkerboard.
+ * Six blocks fit on a 10×10 board; the checkerboard only seats five.
+ */
+const SPECIAL_EDGE_PACKINGS_3: Record<number, readonly { row: number; col: number }[]> = {
+  10: [
+    { row: 0, col: 0 },
+    { row: 0, col: 4 },
+    { row: 3, col: 7 },
+    { row: 4, col: 0 },
+    { row: 7, col: 3 },
+    { row: 7, col: 7 },
+  ],
+}
+
+function specialEdgePacking(
+  gridSize: number,
+  block: number,
+): readonly { row: number; col: number }[] | undefined {
+  if (!Number.isInteger(gridSize)) return undefined
+  if (block === 3) return SPECIAL_EDGE_PACKINGS_3[gridSize]
+  if (block === 4) return SPECIAL_EDGE_PACKINGS_4[gridSize]
+  return undefined
+}
+
+function latticeCount(gridSize: number, stride: number, block: number): number {
+  if (gridSize < block) return 0
+  const across = Math.floor((gridSize - block) / stride) + 1
   return across * across
 }
 
-/** Larger color class of a stride-4 lattice. Orthogonal neighbors are omitted, so corners may touch. */
-function checkerCount(gridSize: number): number {
-  const across = Math.floor(gridSize / IMAGE_BLOCK_SIZE)
+/** Larger color class of a stride-`block` lattice. Orthogonal neighbors are omitted, so corners may touch. */
+function checkerCount(gridSize: number, block: number): number {
+  const across = Math.floor(gridSize / block)
   if (across <= 0) return 0
   return Math.ceil((across * across) / 2)
 }
 
 /**
- * How many 4×4 blocks fit on an n×n board when blocks may meet at a corner
- * but may not share an edge. One empty cell separates any overlapping
- * projection.
+ * How many picture blocks fit on an n×n board when blocks may meet at a
+ * corner but may not share an edge. One empty cell separates any overlapping
+ * projection. The footprint is {@link pictureBlockSize}.
  */
 export function maxImageBlocks(gridSize: number): number {
-  if (!Number.isFinite(gridSize) || gridSize < IMAGE_BLOCK_SIZE) return 0
-  const gapped = latticeCount(gridSize, IMAGE_BLOCK_SIZE + IMAGE_BLOCK_GAP)
-  const checker = checkerCount(gridSize)
-  const special = Number.isInteger(gridSize)
-    ? (SPECIAL_EDGE_PACKINGS[gridSize]?.length ?? 0)
-    : 0
+  if (!Number.isFinite(gridSize)) return 0
+  const block = pictureBlockSize(gridSize)
+  if (gridSize < block) return 0
+  const gapped = latticeCount(gridSize, block + IMAGE_BLOCK_GAP, block)
+  const checker = checkerCount(gridSize, block)
+  const special = specialEdgePacking(gridSize, block)?.length ?? 0
   return Math.max(gapped, checker, special)
 }
 
@@ -117,16 +148,18 @@ export function clampImageCount(count: number, gridSize: number): number {
 
 export function imagePlacementErrorHe(count: number, gridSize: number): string {
   const max = maxImageBlocks(gridSize)
-  return `לא הצלחנו למקם ${count} תמונות של 4×4 בלי צלע משותפת על לוח ${gridSize}×${gridSize}. אפשר לכל היותר ${max}.`
+  const span = pictureBlockSize(gridSize)
+  return `לא הצלחנו למקם ${count} תמונות של ${span}×${span} בלי צלע משותפת על לוח ${gridSize}×${gridSize}. אפשר לכל היותר ${max}.`
 }
 
-export function imageBlockCells(block: {
-  row: number
-  col: number
-}): { row: number; col: number }[] {
+export function imageBlockCells(
+  block: { row: number; col: number },
+  boardSize: number,
+): { row: number; col: number }[] {
+  const span = pictureBlockSize(boardSize)
   const cells: { row: number; col: number }[] = []
-  for (let row = 0; row < IMAGE_BLOCK_SIZE; row++) {
-    for (let col = 0; col < IMAGE_BLOCK_SIZE; col++) {
+  for (let row = 0; row < span; row++) {
+    for (let col = 0; col < span; col++) {
       cells.push({ row: block.row + row, col: block.col + col })
     }
   }
@@ -135,31 +168,31 @@ export function imageBlockCells(block: {
 
 export function blockedCellKeys(
   blocks: readonly { row: number; col: number }[],
+  boardSize: number,
 ): Set<string> {
   const keys = new Set<string>()
   for (const block of blocks) {
-    for (const cell of imageBlockCells(block)) {
+    for (const cell of imageBlockCells(block, boardSize)) {
       keys.add(`${cell.row},${cell.col}`)
     }
   }
   return keys
 }
 
-/** Empty cells between two intervals of length {@link IMAGE_BLOCK_SIZE}. Negative when they overlap, 0 when they touch. */
-function axisSeparation(a: number, b: number): number {
-  if (a > b) return axisSeparation(b, a)
-  return b - (a + IMAGE_BLOCK_SIZE)
+/** Empty cells between two intervals of length `span`. Negative when they overlap, 0 when they touch. */
+function axisSeparation(a: number, b: number, span: number): number {
+  if (a > b) return axisSeparation(b, a, span)
+  return b - (a + span)
 }
 
-/** True when the 4×4 footprints occupy the same cell. */
+/** True when the picture footprints occupy the same cell. */
 export function imageBlocksOverlap(
   a: { row: number; col: number },
   b: { row: number; col: number },
+  boardSize: number,
 ): boolean {
-  return (
-    Math.abs(a.row - b.row) < IMAGE_BLOCK_SIZE &&
-    Math.abs(a.col - b.col) < IMAGE_BLOCK_SIZE
-  )
+  const span = pictureBlockSize(boardSize)
+  return Math.abs(a.row - b.row) < span && Math.abs(a.col - b.col) < span
 }
 
 /**
@@ -170,23 +203,22 @@ export function imageBlocksOverlap(
 export function imageBlocksShareEdge(
   a: { row: number; col: number },
   b: { row: number; col: number },
+  boardSize: number,
 ): boolean {
-  const rowGap = axisSeparation(a.row, b.row)
-  const colGap = axisSeparation(a.col, b.col)
+  const span = pictureBlockSize(boardSize)
+  const rowGap = axisSeparation(a.row, b.row, span)
+  const colGap = axisSeparation(a.col, b.col, span)
   return (rowGap < 0 && colGap <= 0) || (colGap < 0 && rowGap <= 0)
 }
 
 function originFits(size: number, row: number, col: number): boolean {
-  return (
-    row >= 0 &&
-    col >= 0 &&
-    row + IMAGE_BLOCK_SIZE <= size &&
-    col + IMAGE_BLOCK_SIZE <= size
-  )
+  const span = pictureBlockSize(size)
+  return row >= 0 && col >= 0 && row + span <= size && col + span <= size
 }
 
 function allOrigins(size: number): { row: number; col: number }[] {
-  const max = size - IMAGE_BLOCK_SIZE
+  const span = pictureBlockSize(size)
+  const max = size - span
   const origins: { row: number; col: number }[] = []
   for (let row = 0; row <= max; row++) {
     for (let col = 0; col <= max; col++) {
@@ -201,9 +233,10 @@ function shiftedLattice(
   stride: number,
   rng: () => number,
 ): { row: number; col: number }[] {
-  const across = Math.floor((size - IMAGE_BLOCK_SIZE) / stride) + 1
+  const span = pictureBlockSize(size)
+  const across = Math.floor((size - span) / stride) + 1
   if (across <= 0) return []
-  const used = (across - 1) * stride + IMAGE_BLOCK_SIZE
+  const used = (across - 1) * stride + span
   const slack = size - used
   const offsetRow = slack === 0 ? 0 : pickIndex(slack + 1, rng)
   const offsetCol = slack === 0 ? 0 : pickIndex(slack + 1, rng)
@@ -219,22 +252,23 @@ function shiftedLattice(
   return origins
 }
 
-/** One color of a stride-4 lattice. Same-color neighbors meet only at corners. */
+/** One color of a stride-`span` lattice. Same-color neighbors meet only at corners. */
 function checkerLattices(
   size: number,
   rng: () => number,
 ): { row: number; col: number }[][] {
-  const across = Math.floor(size / IMAGE_BLOCK_SIZE)
+  const span = pictureBlockSize(size)
+  const across = Math.floor(size / span)
   if (across <= 0) return []
-  const slack = size - across * IMAGE_BLOCK_SIZE
+  const slack = size - across * span
   const offsetRow = slack === 0 ? 0 : pickIndex(slack + 1, rng)
   const offsetCol = slack === 0 ? 0 : pickIndex(slack + 1, rng)
   const colors: { row: number; col: number }[][] = [[], []]
   for (let row = 0; row < across; row++) {
     for (let col = 0; col < across; col++) {
       colors[(row + col) % 2]!.push({
-        row: offsetRow + row * IMAGE_BLOCK_SIZE,
-        col: offsetCol + col * IMAGE_BLOCK_SIZE,
+        row: offsetRow + row * span,
+        col: offsetCol + col * span,
       })
     }
   }
@@ -249,9 +283,10 @@ function reflectOrigins(
   const flipRow = pickIndex(2, rng) === 1
   const flipCol = pickIndex(2, rng) === 1
   const swap = pickIndex(2, rng) === 1
+  const span = pictureBlockSize(size)
   return origins.map((origin) => {
-    let row = flipRow ? size - IMAGE_BLOCK_SIZE - origin.row : origin.row
-    let col = flipCol ? size - IMAGE_BLOCK_SIZE - origin.col : origin.col
+    let row = flipRow ? size - span - origin.row : origin.row
+    let col = flipCol ? size - span - origin.col : origin.col
     if (swap) {
       const tmp = row
       row = col
@@ -271,18 +306,19 @@ function latticeOrigins(
   count: number,
   rng: () => number,
 ): { row: number; col: number }[] | null {
+  const span = pictureBlockSize(size)
   if (count < 2) {
-    const packed = shiftedLattice(size, IMAGE_BLOCK_SIZE, rng)
+    const packed = shiftedLattice(size, span, rng)
     if (packed.length < count) return null
     return shuffle(packed, rng).slice(0, count)
   }
   const pools: { row: number; col: number }[][] = []
-  const separated = shiftedLattice(size, IMAGE_BLOCK_SIZE + IMAGE_BLOCK_GAP, rng)
+  const separated = shiftedLattice(size, span + IMAGE_BLOCK_GAP, rng)
   if (separated.length >= count) pools.push(separated)
   for (const color of checkerLattices(size, rng)) {
     if (color.length >= count) pools.push(color)
   }
-  const special = SPECIAL_EDGE_PACKINGS[size]
+  const special = specialEdgePacking(size, span)
   if (special && special.length >= count) pools.push(reflectOrigins(size, special, rng))
   if (pools.length === 0) return null
   const pool = pools[pickIndex(pools.length, rng)]!
@@ -303,8 +339,8 @@ function randomOrigins(
     const placed: { row: number; col: number }[] = []
     for (const origin of shuffled) {
       const blocked = separateEdges
-        ? placed.some((block) => imageBlocksShareEdge(block, origin))
-        : placed.some((block) => imageBlocksOverlap(block, origin))
+        ? placed.some((block) => imageBlocksShareEdge(block, origin, size))
+        : placed.some((block) => imageBlocksOverlap(block, origin, size))
       if (blocked) continue
       placed.push(origin)
       if (placed.length === count) return placed
@@ -361,14 +397,15 @@ function blockFits(size: number, block: ImageBlock): boolean {
 }
 
 function blocksConflict(
+  size: number,
   blocks: readonly { row: number; col: number }[],
   separateEdges: boolean,
 ): boolean {
   for (let i = 0; i < blocks.length; i++) {
     for (let j = i + 1; j < blocks.length; j++) {
       const conflict = separateEdges
-        ? imageBlocksShareEdge(blocks[i]!, blocks[j]!)
-        : imageBlocksOverlap(blocks[i]!, blocks[j]!)
+        ? imageBlocksShareEdge(blocks[i]!, blocks[j]!, size)
+        : imageBlocksOverlap(blocks[i]!, blocks[j]!, size)
       if (conflict) return true
     }
   }
@@ -393,7 +430,7 @@ export function keptImageBlocks(
     seen.add(block.imageId)
     copies.push(copyBlock(block))
   }
-  if (copies.length >= 2 && blocksConflict(copies, true)) return null
+  if (copies.length >= 2 && blocksConflict(size, copies, true)) return null
   return copies
 }
 
@@ -414,7 +451,7 @@ export function retainImageBlocks(
   for (const block of blocks) {
     if (kept.length >= count) break
     if (!blockFits(size, block) || seen.has(block.imageId)) continue
-    if (kept.length >= 1 && blocksConflict([...kept, block], separateEdges)) continue
+    if (kept.length >= 1 && blocksConflict(size, [...kept, block], separateEdges)) continue
     seen.add(block.imageId)
     kept.push(copyBlock(block))
   }
@@ -436,8 +473,8 @@ function additionalOrigins(
     const added: { row: number; col: number }[] = []
     for (const origin of shuffled) {
       const blocked = separateEdges
-        ? placed.some((block) => imageBlocksShareEdge(block, origin))
-        : placed.some((block) => imageBlocksOverlap(block, origin))
+        ? placed.some((block) => imageBlocksShareEdge(block, origin, size))
+        : placed.some((block) => imageBlocksOverlap(block, origin, size))
       if (blocked) continue
       placed.push(origin)
       added.push(origin)
@@ -519,7 +556,8 @@ export function resolveImageBlocks(
 }
 
 /**
- * Place `count` 4×4 blocks at random origins.
+ * Place `count` picture blocks at random origins.
+ * Each block is {@link pictureBlockSize} cells on a side.
  * A single picture may sit on any in-bounds origin. Two or more pictures
  * may meet at a corner, but not along an edge: overlapping rows need a
  * one-cell column gap, and overlapping columns need a one-cell row gap.
@@ -553,8 +591,8 @@ export function placeImageBlocks(
     for (let j = i + 1; j < origins.length; j++) {
       const conflict =
         placeCount >= 2
-          ? imageBlocksShareEdge(origins[i]!, origins[j]!)
-          : imageBlocksOverlap(origins[i]!, origins[j]!)
+          ? imageBlocksShareEdge(origins[i]!, origins[j]!, size)
+          : imageBlocksOverlap(origins[i]!, origins[j]!, size)
       if (conflict) return null
     }
   }

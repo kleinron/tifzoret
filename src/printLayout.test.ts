@@ -117,11 +117,11 @@ describe('WordGrid print hooks', () => {
     expect(html).toContain('dir="ltr"')
   })
 
-  it('prints an embedded picture across a 4×4 block', () => {
-    const grid = Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 'א'))
+  it('prints an embedded picture across a square sized to the board', () => {
+    const small = Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => 'א'))
     const html = renderToStaticMarkup(
       createElement(WordGrid, {
-        grid,
+        grid: small,
         fontSize: 18,
         foundCells: new Map(),
         onPathComplete: () => undefined,
@@ -133,10 +133,24 @@ describe('WordGrid print hooks', () => {
     expect(html).toContain('cell-image')
     expect(html).toContain('תמונה: חתול')
     expect(html).toContain('data-image="cat"')
-    expect(html).toContain('grid-row:2 / span 4')
-    expect(html).toContain('grid-column:3 / span 4')
-    expect(html.match(/data-cell=/g)?.length).toBe(64 - 15)
+    expect(html).toContain('grid-row:2 / span 3')
+    expect(html).toContain('grid-column:3 / span 3')
+    expect(html.match(/data-cell=/g)?.length).toBe(64 - 8)
     expect(html).not.toContain('http://')
     expect(html).not.toContain('https://')
+
+    const wide = Array.from({ length: 12 }, () => Array.from({ length: 12 }, () => 'א'))
+    const wideHtml = renderToStaticMarkup(
+      createElement(WordGrid, {
+        grid: wide,
+        fontSize: 18,
+        foundCells: new Map(),
+        onPathComplete: () => undefined,
+        imageBlocks: [{ imageId: 'cat', row: 1, col: 2 }],
+      }),
+    )
+    expect(wideHtml).toContain('grid-row:2 / span 4')
+    expect(wideHtml).toContain('grid-column:3 / span 4')
+    expect(wideHtml.match(/data-cell=/g)?.length).toBe(144 - 15)
   })
 })
