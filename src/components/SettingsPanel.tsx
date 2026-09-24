@@ -350,7 +350,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
       <div className="actions">
         <button
           type="button"
-          className={props.busy ? 'secondary is-busy' : 'secondary'}
+          className={props.busy ? 'primary is-busy' : 'primary'}
           onClick={props.onReshuffle}
           disabled={props.busy}
         >
