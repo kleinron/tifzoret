@@ -317,6 +317,7 @@ describe('SettingsPanel validation UI', () => {
     )
     expect(html).toMatch(/<button[^>]*disabled[^>]*>הוסף למחסן מילים/)
     expect(html).toContain('ערבב מחדש')
+    expect(html).toMatch(/<button type="button" class="primary">ערבב מחדש<\/button>/)
     expect(html).not.toMatch(/<button[^>]*disabled[^>]*>ערבב מחדש/)
   })
 
