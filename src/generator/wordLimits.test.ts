@@ -152,7 +152,7 @@ describe('max 50 words in the bank', () => {
     const extra = extraFillCount(12, 1)
     expect(extra).toBeGreaterThan(0)
     expect(age10FillHint(12, 1)).toBe(
-      `יוסיף עוד ${extra} מילים ידידותיות לגיל ~10`,
+      `יוסיף עוד ${extra} מילים ידידותיות`,
     )
     expect(age10FillHint(12, 13)).toBe('כבר ביעד ללוח הזה — לא יתווספו מילים')
     expect(age10FillHint(12, MAX_BANK_WORDS)).toBe(
