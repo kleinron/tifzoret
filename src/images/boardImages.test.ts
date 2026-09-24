@@ -64,7 +64,7 @@ describe('default image setting', () => {
     const html = renderToStaticMarkup(createElement(App))
     expect(html).toContain('תמונות על הלוח: 1')
     expect(html).toContain('aria-label="תמונות על הלוח"')
-    expect(html).toContain('max="9"')
+    expect(html).toContain('max="5"')
     expect(html).toContain('מחסן מילים')
   })
 })

@@ -7,6 +7,12 @@ import { pickIndex, shuffle } from './rng.ts'
 /** Each picture covers a square of this many cells on a side. */
 export const IMAGE_BLOCK_SIZE = 4
 
+/**
+ * Empty cells required along a shared edge once two or more pictures are
+ * placed. Corner-only contact is allowed.
+ */
+export const IMAGE_BLOCK_GAP = 1
+
 /** App default when the visitor did not open a share link. */
 export const DEFAULT_IMAGE_COUNT = 1
 
@@ -22,11 +28,73 @@ export type ImageBlock = {
   col: number
 }
 
-/** How many non-overlapping 4×4 blocks fit on an n×n board. */
+/**
+ * Packings tighter than a plain stride-5 grid or a stride-4 checkerboard.
+ * Each list is a maximum set of origins whose blocks never share an edge.
+ */
+const SPECIAL_EDGE_PACKINGS: Record<number, readonly { row: number; col: number }[]> = {
+  13: [
+    { row: 0, col: 0 },
+    { row: 0, col: 5 },
+    { row: 4, col: 9 },
+    { row: 5, col: 0 },
+    { row: 9, col: 4 },
+    { row: 9, col: 9 },
+  ],
+  17: [
+    { row: 0, col: 0 },
+    { row: 0, col: 5 },
+    { row: 3, col: 13 },
+    { row: 5, col: 0 },
+    { row: 5, col: 8 },
+    { row: 8, col: 13 },
+    { row: 9, col: 4 },
+    { row: 13, col: 0 },
+    { row: 13, col: 8 },
+    { row: 13, col: 13 },
+  ],
+  18: [
+    { row: 0, col: 0 },
+    { row: 0, col: 5 },
+    { row: 0, col: 10 },
+    { row: 4, col: 14 },
+    { row: 5, col: 0 },
+    { row: 5, col: 5 },
+    { row: 9, col: 9 },
+    { row: 9, col: 14 },
+    { row: 10, col: 0 },
+    { row: 14, col: 4 },
+    { row: 14, col: 9 },
+    { row: 14, col: 14 },
+  ],
+}
+
+function latticeCount(gridSize: number, stride: number): number {
+  if (gridSize < IMAGE_BLOCK_SIZE) return 0
+  const across = Math.floor((gridSize - IMAGE_BLOCK_SIZE) / stride) + 1
+  return across * across
+}
+
+/** Larger color class of a stride-4 lattice. Orthogonal neighbors are omitted, so corners may touch. */
+function checkerCount(gridSize: number): number {
+  const across = Math.floor(gridSize / IMAGE_BLOCK_SIZE)
+  if (across <= 0) return 0
+  return Math.ceil((across * across) / 2)
+}
+
+/**
+ * How many 4×4 blocks fit on an n×n board when blocks may meet at a corner
+ * but may not share an edge. One empty cell separates any overlapping
+ * projection.
+ */
 export function maxImageBlocks(gridSize: number): number {
   if (!Number.isFinite(gridSize) || gridSize < IMAGE_BLOCK_SIZE) return 0
-  const across = Math.floor(gridSize / IMAGE_BLOCK_SIZE)
-  return across * across
+  const gapped = latticeCount(gridSize, IMAGE_BLOCK_SIZE + IMAGE_BLOCK_GAP)
+  const checker = checkerCount(gridSize)
+  const special = Number.isInteger(gridSize)
+    ? (SPECIAL_EDGE_PACKINGS[gridSize]?.length ?? 0)
+    : 0
+  return Math.max(gapped, checker, special)
 }
 
 export function clampImageCount(count: number, gridSize: number): number {
@@ -37,7 +105,7 @@ export function clampImageCount(count: number, gridSize: number): number {
 
 export function imagePlacementErrorHe(count: number, gridSize: number): string {
   const max = maxImageBlocks(gridSize)
-  return `לא הצלחנו למקם ${count} תמונות של 4×4 בלי חפיפה על לוח ${gridSize}×${gridSize}. אפשר לכל היותר ${max}.`
+  return `לא הצלחנו למקם ${count} תמונות של 4×4 בלי צלע משותפת על לוח ${gridSize}×${gridSize}. אפשר לכל היותר ${max}.`
 }
 
 export function imageBlockCells(block: {
@@ -65,16 +133,35 @@ export function blockedCellKeys(
   return keys
 }
 
+/** Empty cells between two intervals of length {@link IMAGE_BLOCK_SIZE}. Negative when they overlap, 0 when they touch. */
+function axisSeparation(a: number, b: number): number {
+  if (a > b) return axisSeparation(b, a)
+  return b - (a + IMAGE_BLOCK_SIZE)
+}
+
+/** True when the 4×4 footprints occupy the same cell. */
 export function imageBlocksOverlap(
   a: { row: number; col: number },
   b: { row: number; col: number },
 ): boolean {
   return (
-    a.row < b.row + IMAGE_BLOCK_SIZE &&
-    b.row < a.row + IMAGE_BLOCK_SIZE &&
-    a.col < b.col + IMAGE_BLOCK_SIZE &&
-    b.col < a.col + IMAGE_BLOCK_SIZE
+    Math.abs(a.row - b.row) < IMAGE_BLOCK_SIZE &&
+    Math.abs(a.col - b.col) < IMAGE_BLOCK_SIZE
   )
+}
+
+/**
+ * True when two blocks overlap or share any edge segment, including a
+ * partial edge. Corner-only contact returns false: each block is expanded
+ * on its four sides, not into the diagonal cells.
+ */
+export function imageBlocksShareEdge(
+  a: { row: number; col: number },
+  b: { row: number; col: number },
+): boolean {
+  const rowGap = axisSeparation(a.row, b.row)
+  const colGap = axisSeparation(a.col, b.col)
+  return (rowGap < 0 && colGap <= 0) || (colGap < 0 && rowGap <= 0)
 }
 
 function originFits(size: number, row: number, col: number): boolean {
@@ -97,30 +184,97 @@ function allOrigins(size: number): { row: number; col: number }[] {
   return origins
 }
 
-/**
- * Guaranteed packing: a shifted lattice of floor(n/4) by floor(n/4).
- * Used when a random greedy pass cannot seat every block.
- */
-function latticeOrigins(
+function shiftedLattice(
   size: number,
-  count: number,
+  stride: number,
   rng: () => number,
-): { row: number; col: number }[] | null {
-  const across = Math.floor(size / IMAGE_BLOCK_SIZE)
-  if (across * across < count) return null
-  const slack = size - across * IMAGE_BLOCK_SIZE
+): { row: number; col: number }[] {
+  const across = Math.floor((size - IMAGE_BLOCK_SIZE) / stride) + 1
+  if (across <= 0) return []
+  const used = (across - 1) * stride + IMAGE_BLOCK_SIZE
+  const slack = size - used
   const offsetRow = slack === 0 ? 0 : pickIndex(slack + 1, rng)
   const offsetCol = slack === 0 ? 0 : pickIndex(slack + 1, rng)
   const origins: { row: number; col: number }[] = []
   for (let row = 0; row < across; row++) {
     for (let col = 0; col < across; col++) {
       origins.push({
+        row: offsetRow + row * stride,
+        col: offsetCol + col * stride,
+      })
+    }
+  }
+  return origins
+}
+
+/** One color of a stride-4 lattice. Same-color neighbors meet only at corners. */
+function checkerLattices(
+  size: number,
+  rng: () => number,
+): { row: number; col: number }[][] {
+  const across = Math.floor(size / IMAGE_BLOCK_SIZE)
+  if (across <= 0) return []
+  const slack = size - across * IMAGE_BLOCK_SIZE
+  const offsetRow = slack === 0 ? 0 : pickIndex(slack + 1, rng)
+  const offsetCol = slack === 0 ? 0 : pickIndex(slack + 1, rng)
+  const colors: { row: number; col: number }[][] = [[], []]
+  for (let row = 0; row < across; row++) {
+    for (let col = 0; col < across; col++) {
+      colors[(row + col) % 2]!.push({
         row: offsetRow + row * IMAGE_BLOCK_SIZE,
         col: offsetCol + col * IMAGE_BLOCK_SIZE,
       })
     }
   }
-  return shuffle(origins, rng).slice(0, count)
+  return colors
+}
+
+function reflectOrigins(
+  size: number,
+  origins: readonly { row: number; col: number }[],
+  rng: () => number,
+): { row: number; col: number }[] {
+  const flipRow = pickIndex(2, rng) === 1
+  const flipCol = pickIndex(2, rng) === 1
+  const swap = pickIndex(2, rng) === 1
+  return origins.map((origin) => {
+    let row = flipRow ? size - IMAGE_BLOCK_SIZE - origin.row : origin.row
+    let col = flipCol ? size - IMAGE_BLOCK_SIZE - origin.col : origin.col
+    if (swap) {
+      const tmp = row
+      row = col
+      col = tmp
+    }
+    return { row, col }
+  })
+}
+
+/**
+ * Guaranteed packing used when a random greedy pass cannot seat every block.
+ * With two or more pictures, candidates keep a one-cell gap on shared edges
+ * and may still touch at a corner.
+ */
+function latticeOrigins(
+  size: number,
+  count: number,
+  rng: () => number,
+): { row: number; col: number }[] | null {
+  if (count < 2) {
+    const packed = shiftedLattice(size, IMAGE_BLOCK_SIZE, rng)
+    if (packed.length < count) return null
+    return shuffle(packed, rng).slice(0, count)
+  }
+  const pools: { row: number; col: number }[][] = []
+  const separated = shiftedLattice(size, IMAGE_BLOCK_SIZE + IMAGE_BLOCK_GAP, rng)
+  if (separated.length >= count) pools.push(separated)
+  for (const color of checkerLattices(size, rng)) {
+    if (color.length >= count) pools.push(color)
+  }
+  const special = SPECIAL_EDGE_PACKINGS[size]
+  if (special && special.length >= count) pools.push(reflectOrigins(size, special, rng))
+  if (pools.length === 0) return null
+  const pool = pools[pickIndex(pools.length, rng)]!
+  return shuffle(pool, rng).slice(0, count)
 }
 
 const GREEDY_TRIES = 32
@@ -130,12 +284,16 @@ function randomOrigins(
   count: number,
   rng: () => number,
 ): { row: number; col: number }[] | null {
+  const separateEdges = count >= 2
   const pool = allOrigins(size)
   for (let attempt = 0; attempt < GREEDY_TRIES; attempt++) {
     const shuffled = shuffle(pool, rng)
     const placed: { row: number; col: number }[] = []
     for (const origin of shuffled) {
-      if (placed.some((block) => imageBlocksOverlap(block, origin))) continue
+      const blocked = separateEdges
+        ? placed.some((block) => imageBlocksShareEdge(block, origin))
+        : placed.some((block) => imageBlocksOverlap(block, origin))
+      if (blocked) continue
       placed.push(origin)
       if (placed.length === count) return placed
     }
@@ -165,7 +323,10 @@ function pickImages(
 }
 
 /**
- * Place `count` non-overlapping 4×4 blocks at random origins.
+ * Place `count` 4×4 blocks at random origins.
+ * A single picture may sit on any in-bounds origin. Two or more pictures
+ * may meet at a corner, but not along an edge: overlapping rows need a
+ * one-cell column gap, and overlapping columns need a one-cell row gap.
  * Returns null when `count` cannot fit. Count 0 returns an empty list
  * and does not draw from `rng`.
  *
@@ -190,7 +351,11 @@ export function placeImageBlocks(
   }
   for (let i = 0; i < origins.length; i++) {
     for (let j = i + 1; j < origins.length; j++) {
-      if (imageBlocksOverlap(origins[i]!, origins[j]!)) return null
+      const conflict =
+        count >= 2
+          ? imageBlocksShareEdge(origins[i]!, origins[j]!)
+          : imageBlocksOverlap(origins[i]!, origins[j]!)
+      if (conflict) return null
     }
   }
 

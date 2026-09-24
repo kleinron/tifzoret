@@ -16,7 +16,7 @@ Live (GitHub Pages): https://kleinron.github.io/tifzoret/
    - **ללא אותיות סופיות** — מילים עם ם / ן / ץ / ף / ך לא ייכנסו, והאותיות הסופיות לא יופיעו בריבוע.
 5. בחרו גודל רשת (8–20), **תמונות על הלוח** וגודל גופן (ברירת מחדל 18pt).
    - ברירת המחדל היא **תמונה אחת**. 0 מכבה את התמונות.
-   - כל תמונה תופסת ריבוע **4×4** בלי אותיות. המקסימום הוא כמה ריבועים כאלה נכנסים בלי חפיפה (למשל 9 בלוח 12×12, 4 בלוח 8×8). הקטנת הלוח חותכת את המספר אוטומטית. אם התמונות לא משאירות מקום למילה (למשל 4 תמונות על לוח 8×8), היצירה נכשלת בעברית.
+   - כל תמונה תופסת ריבוע **4×4** בלי אותיות. משתי תמונות ומעלה אסור להן לחלוק צלע, גם חלקית — לאורך הצלע חייבת להישאר לפחות משבצת ריקה. מגע בפינה בלבד מותר. המקסימום הוא כמה ריבועים כאלה נכנסים (למשל 5 בלוח 12×12, 2 בלוח 8×8). הקטנת הלוח חותכת את המספר אוטומטית. אם מבקשים יותר תמונות ממה שנכנס, היצירה נכשלת בעברית.
    - הציורים (חתול, כדור, שמש, פרח, דג, כוכב, עץ, ציפור, בית, מכונית, תפוח, לב, ענן, ירח, פרפר, סירה) הם SVG מקוריים בתוך האפליקציה, בלי רשת.
    - **המיקום והציור מוגרלים מחדש** בכל «צור תפזורת» ובכל «ערבב מחדש», כמו שיבוץ המילים. מספר התמונות נשאר כפי שנבחר, כמו הכיוונים. «ערבב מחדש» לא מגריל מחדש את מילות גיל 10 שכבר נוספו.
 6. **צור תפזורת** או **ערבב מחדש**. כל מילת מחסן מופיעה **פעם אחת בלבד** בכיוונים הפעילים; משבצות התמונה חסומות ולא נספרות כאות. אם נוצרת הופעה מקרית, המחולל מערבב שוב.
@@ -32,7 +32,7 @@ Live (GitHub Pages): https://kleinron.github.io/tifzoret/
    - **Automatic age-~10 fill** — on Generate, extra kid-friendly words from the bundled corpus (offline).
    - **No final letters** — drop words containing ם ן ץ ף ך; those sofit letters also stay out of the grid.
 5. Grid size 8–20. **Pictures on the board** default to **1** (0 turns them off). Font size defaults to **18pt** (Assistant / Heebo).
-   - Each picture occupies a **4×4** block that letters cannot use. The maximum is how many non-overlapping 4×4 blocks fit (9 on 12×12, 4 on 8×8). Shrinking the grid clamps the count. If the pictures leave no room for a word (4 pictures on an 8×8 board cover it), generation fails with a clear Hebrew message.
+   - Each picture occupies a **4×4** block that letters cannot use. From two pictures up, blocks may not share an edge, even part of one: overlapping rows or columns keep at least one empty cell between them. Touching at a corner only is allowed. The maximum is how many such blocks fit (5 on 12×12, 2 on 8×8). Shrinking the grid clamps the count. Asking for more pictures than fit fails with a clear Hebrew message.
    - Drawings (cat, ball, sun, flower, fish, star, tree, bird, house, car, apple, heart, cloud, moon, butterfly, boat) are original SVGs embedded in the app (`src/images`), not loaded from the network.
    - **Position and which drawing are re-rolled** on Generate and on Reshuffle, same as word placement. The count is a setting, like directions, and is not re-rolled. Reshuffle does not draw a new age-10 word set.
 6. **Generate** / **Reshuffle**. Each word in the store is placed **exactly once**. Image cells are blocked: they are not filled with letters, and a word span that enters one does not count. After random fill, the generator verifies there is no accidental second copy along enabled directions and retries until that holds (or fails clearly, in Hebrew, including when the pictures themselves cannot be placed).
