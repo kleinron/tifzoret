@@ -4,14 +4,15 @@ import type { ImagePolicy } from './imageBlocks.ts'
 export type PuzzleRefresh = 'settings' | 'reshuffle'
 
 /**
- * Slider and paired number fields fire once per pixel. Wait this long after
- * the last puzzle-settings change before building.
+ * Wait after a committed settings change so a paired update (board size and
+ * the clamped picture count) becomes one build. Sliders themselves commit
+ * only on release, not on each pixel of a drag.
  */
 export const SETTINGS_GENERATE_DEBOUNCE_MS = 180
 
 /**
  * First paint and «ערבב מחדש» run immediately.
- * Later settings changes wait so a drag becomes one build.
+ * Later settings changes wait so one gesture becomes one build.
  */
 export function puzzleRefreshDelay(action: PuzzleRefresh, booted: boolean): number {
   if (!booted || action !== 'settings') return 0
