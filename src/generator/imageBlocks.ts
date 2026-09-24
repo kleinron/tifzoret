@@ -97,8 +97,42 @@ export function maxImageBlocks(gridSize: number): number {
   return Math.max(gapped, checker, special)
 }
 
-export function clampImageCount(count: number, gridSize: number): number {
-  const max = maxImageBlocks(gridSize)
+/** Catalog ids with repeats removed, first occurrence kept. */
+export function distinctImageIds(ids: readonly BoardImageId[]): BoardImageId[] {
+  const seen = new Set<BoardImageId>()
+  const unique: BoardImageId[] = []
+  for (const id of ids) {
+    if (seen.has(id)) continue
+    seen.add(id)
+    unique.push(id)
+  }
+  return unique
+}
+
+/** How many different drawings the catalog can supply. */
+export function distinctDrawingCount(
+  imageIds: readonly BoardImageId[] = BOARD_IMAGE_IDS,
+): number {
+  return distinctImageIds(imageIds).length
+}
+
+/**
+ * Pictures that can actually be placed: the board packing limit and the
+ * number of distinct drawings, whichever is smaller.
+ */
+export function maxDistinctImages(
+  gridSize: number,
+  imageIds: readonly BoardImageId[] = BOARD_IMAGE_IDS,
+): number {
+  return Math.min(maxImageBlocks(gridSize), distinctDrawingCount(imageIds))
+}
+
+export function clampImageCount(
+  count: number,
+  gridSize: number,
+  imageIds: readonly BoardImageId[] = BOARD_IMAGE_IDS,
+): number {
+  const max = maxDistinctImages(gridSize, imageIds)
   if (!Number.isFinite(count)) return Math.min(DEFAULT_IMAGE_COUNT, max)
   return Math.min(max, Math.max(0, Math.round(count)))
 }
@@ -301,24 +335,24 @@ function randomOrigins(
   return latticeOrigins(size, count, rng)
 }
 
+/**
+ * Up to `count` different drawings, in random order.
+ * Never repeats an id. Does not draw from `rng` when nothing can be picked.
+ * When every id is eligible, the shuffle matches a single catalog pass so a
+ * fresh placement still consumes the same random draws as before.
+ */
 function pickImages(
   count: number,
   rng: () => number,
   ids: readonly BoardImageId[],
 ): BoardImageId[] {
+  if (count <= 0) return []
+  const available = distinctImageIds(ids)
+  if (available.length === 0) return []
+  const take = Math.min(count, available.length)
+  const shuffled = shuffle(available, rng)
   const picked: BoardImageId[] = []
-  let bag: BoardImageId[] = []
-  while (picked.length < count) {
-    if (bag.length === 0) {
-      bag = shuffle(ids, rng)
-      const prev = picked[picked.length - 1]
-      if (prev !== undefined && bag.length > 1 && bag[bag.length - 1] === prev) {
-        const last = bag.pop()!
-        bag.unshift(last)
-      }
-    }
-    picked.push(bag.pop()!)
-  }
+  for (let i = 0; i < take; i++) picked.push(shuffled.pop()!)
   return picked
 }
 
@@ -327,7 +361,7 @@ function pickImages(
  * - `roll` — ignore them and place `count` new blocks.
  * - `keep` — same drawings, same cells («ערבב מחדש»), when that set is still legal.
  * - `adapt` — keep drawings that still fit, drop the rest, and fill up to `count`
- *   (a settings change).
+ *   with drawings that are not already on the board (a settings change).
  */
 export type ImagePolicy = 'roll' | 'keep' | 'adapt'
 
@@ -365,8 +399,8 @@ function blocksConflict(
 
 /**
  * Exact pictures to leave in place. Returns null when the set is empty or
- * any block is out of bounds, unknown, or too close to another (shared edge
- * once there are two or more). Does not draw from an rng.
+ * any block is out of bounds, unknown, a repeated drawing, or too close to
+ * another (shared edge once there are two or more). Does not draw from an rng.
  */
 export function keptImageBlocks(
   size: number,
@@ -375,8 +409,10 @@ export function keptImageBlocks(
   if (blocks.length === 0) return null
   if (!Number.isInteger(size) || blocks.length > maxImageBlocks(size)) return null
   const copies: ImageBlock[] = []
+  const seen = new Set<BoardImageId>()
   for (const block of blocks) {
-    if (!blockFits(size, block)) return null
+    if (!blockFits(size, block) || seen.has(block.imageId)) return null
+    seen.add(block.imageId)
     copies.push(copyBlock(block))
   }
   if (copies.length >= 2 && blocksConflict(copies, true)) return null
@@ -385,7 +421,8 @@ export function keptImageBlocks(
 
 /**
  * Pictures from `blocks` that still fit `size`, in their existing order,
- * stopped at `count`. Later blocks fill gaps left by ones that no longer fit.
+ * stopped at `count`. A drawing already kept is skipped. Later blocks fill
+ * gaps left by ones that no longer fit.
  */
 export function retainImageBlocks(
   blocks: readonly ImageBlock[],
@@ -395,10 +432,12 @@ export function retainImageBlocks(
   if (count <= 0) return []
   const separateEdges = count >= 2
   const kept: ImageBlock[] = []
+  const seen = new Set<BoardImageId>()
   for (const block of blocks) {
     if (kept.length >= count) break
-    if (!blockFits(size, block)) continue
+    if (!blockFits(size, block) || seen.has(block.imageId)) continue
     if (kept.length >= 1 && blocksConflict([...kept, block], separateEdges)) continue
+    seen.add(block.imageId)
     kept.push(copyBlock(block))
   }
   return kept
@@ -439,17 +478,23 @@ function adaptedImageBlocks(
 ): ImageBlock[] | null {
   if (!Number.isInteger(count) || count < 0) return null
   if (count === 0) return []
-  const retained = retainImageBlocks(existing, size, count)
-  if (retained.length === 0) return placeImageBlocks(size, count, rng, imageIds)
+  const catalog = distinctImageIds(imageIds)
+  const target = Math.min(count, catalog.length)
+  if (target === 0) return null
+  const retained = retainImageBlocks(existing, size, target)
+  if (retained.length === 0) return placeImageBlocks(size, target, rng, catalog)
 
-  const separateEdges = count >= 2
+  const separateEdges = target >= 2
   for (let keep = retained.length; keep >= 1; keep--) {
     const prefix = retained.slice(0, keep)
-    const need = count - prefix.length
+    const used = new Set(prefix.map((block) => block.imageId))
+    const available = catalog.filter((id) => !used.has(id))
+    const need = Math.min(target - prefix.length, available.length)
     if (need === 0) return prefix
     const added = additionalOrigins(size, need, rng, prefix, separateEdges)
     if (!added) continue
-    const pictures = pickImages(need, rng, imageIds)
+    const pictures = pickImages(need, rng, available)
+    if (pictures.length !== need) continue
     return [
       ...prefix,
       ...added.map((origin, index) => ({
@@ -459,14 +504,16 @@ function adaptedImageBlocks(
       })),
     ]
   }
-  return placeImageBlocks(size, count, rng, imageIds)
+  return placeImageBlocks(size, target, rng, catalog)
 }
 
 /**
  * Place `count` pictures under `policy`. `roll` matches {@link placeImageBlocks}.
  * `keep` returns `existing` unchanged when that set is still legal, and otherwise
- * adapts. `adapt` prefers the current drawings and only moves or drops what no
- * longer fits the board or the requested count.
+ * adapts. A repeated drawing is not legal, so reshuffle replaces it instead of
+ * keeping the copy. `adapt` prefers the current drawings and only moves or drops
+ * what no longer fits the board or the requested count. Added drawings are
+ * chosen from ids that are not already placed.
  */
 export function resolveImageBlocks(
   size: number,
@@ -495,11 +542,12 @@ export function resolveImageBlocks(
  * A single picture may sit on any in-bounds origin. Two or more pictures
  * may meet at a corner, but not along an edge: overlapping rows need a
  * one-cell column gap, and overlapping columns need a one-cell row gap.
- * Returns null when `count` cannot fit. Count 0 returns an empty list
- * and does not draw from `rng`.
+ * Returns null when that many blocks cannot fit. Count 0 returns an empty
+ * list and does not draw from `rng`.
  *
- * Pictures are a shuffled cycle of the catalog, so a batch uses each
- * drawing once before repeating.
+ * Every placed block uses a different drawing. When `count` is larger than
+ * the number of distinct ids, only that many blocks are placed — drawings
+ * are never repeated to fill the request.
  */
 export function placeImageBlocks(
   size: number,
@@ -509,25 +557,29 @@ export function placeImageBlocks(
 ): ImageBlock[] | null {
   if (count === 0) return []
   if (!Number.isInteger(count) || count < 0) return null
-  if (!Number.isInteger(size) || count > maxImageBlocks(size)) return null
-  if (imageIds.length === 0) return null
+  if (!Number.isInteger(size)) return null
+  const available = distinctImageIds(imageIds)
+  if (available.length === 0) return null
+  const placeCount = Math.min(count, available.length)
+  if (placeCount > maxImageBlocks(size)) return null
 
-  const origins = randomOrigins(size, count, rng)
-  if (!origins || origins.length !== count) return null
+  const origins = randomOrigins(size, placeCount, rng)
+  if (!origins || origins.length !== placeCount) return null
   if (origins.some((origin) => !originFits(size, origin.row, origin.col))) {
     return null
   }
   for (let i = 0; i < origins.length; i++) {
     for (let j = i + 1; j < origins.length; j++) {
       const conflict =
-        count >= 2
+        placeCount >= 2
           ? imageBlocksShareEdge(origins[i]!, origins[j]!)
           : imageBlocksOverlap(origins[i]!, origins[j]!)
       if (conflict) return null
     }
   }
 
-  const pictures = pickImages(count, rng, imageIds)
+  const pictures = pickImages(placeCount, rng, available)
+  if (pictures.length !== placeCount) return null
   return origins.map((origin, index) => ({
     imageId: pictures[index]!,
     row: origin.row,

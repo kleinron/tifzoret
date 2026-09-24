@@ -5,7 +5,7 @@ import {
   type Direction,
   type DirectionId,
 } from '../generator/directions.ts'
-import { clampImageCount, maxImageBlocks } from '../generator/imageBlocks.ts'
+import { clampImageCount, maxDistinctImages } from '../generator/imageBlocks.ts'
 import type { FieldIssue } from '../generator/wordLimits.ts'
 import {
   AGE10_FILL_LABEL,
@@ -167,7 +167,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
 
   const atLimit = props.bank.length >= props.bankLimit
   const invalid = props.issues.length > 0
-  const maxImages = maxImageBlocks(props.gridSize)
+  const maxImages = maxDistinctImages(props.gridSize)
   const imageCount = clampImageCount(props.imageCount, props.gridSize)
 
   return (
@@ -315,7 +315,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           />
           <p className="hint">
             כל תמונה מכסה 4×4 משבצות בלי אותיות. עד {maxImages} בלוח הזה, בלי
-            צלע משותפת (מגע בפינה מותר). «ערבב מחדש» משאיר את התמונות שכבר על
+            צלע משותפת (מגע בפינה מותר). כל ציור על הלוח שונה. «ערבב מחדש» משאיר את התמונות שכבר על
             הלוח. שינוי הגדרות יוצר תפזורת מיד, ומשאיר תמונות קיימות כל עוד
             הן נכנסות בלוח.
           </p>

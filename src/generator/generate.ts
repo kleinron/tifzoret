@@ -19,6 +19,7 @@ import {
   blockedCellKeys,
   IMAGE_BLOCK_SIZE,
   imagePlacementErrorHe,
+  distinctDrawingCount,
   keptImageBlocks,
   maxImageBlocks,
   resolveImageBlocks,
@@ -357,7 +358,7 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
   const pinned = request.pinnedImageBlocks ?? []
   // A legal keep is fixed for every attempt and does not draw from `rng`.
   const kept = policy === 'keep' ? keptImageBlocks(size, pinned) : null
-  const imageCount = kept ? kept.length : (request.imageCount ?? 0)
+  let imageCount = kept ? kept.length : (request.imageCount ?? 0)
   const fallbackPolicy: ImagePolicy =
     policy === 'keep' ? (pinned.length > 0 ? 'adapt' : 'roll') : policy
   if (!Number.isInteger(imageCount) || imageCount < 0) {
@@ -366,6 +367,9 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
       'מספר התמונות חייב להיות אפס או יותר.',
     )
   }
+  // A kept set is already distinct. A new or adapted set never repeats a
+  // drawing, so a request larger than the catalog places only the unique ones.
+  if (!kept) imageCount = Math.min(imageCount, distinctDrawingCount())
   if (imageCount > maxImageBlocks(size)) {
     return fail(
       `Could not place ${imageCount} 4×4 image blocks without a shared edge on a ${size}×${size} grid.`,
