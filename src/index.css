@@ -171,7 +171,7 @@ legend {
 
 .catalog-modal {
   width: min(44rem, 100%);
-  max-height: min(40rem, calc(100vh - 2.5rem));
+  max-height: min(56rem, calc(100vh - 2.5rem));
   overflow: auto;
   padding: 1rem 1.1rem 1.2rem;
   background: #fffdf8;
