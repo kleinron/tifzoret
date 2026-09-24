@@ -8,7 +8,7 @@ import {
 } from 'react'
 import {
   BLOCKED_CELL,
-  IMAGE_BLOCK_SIZE,
+  pictureBlockSize,
   type ImageBlock,
 } from '../generator/imageBlocks.ts'
 import { BoardImage } from '../images/BoardImage.tsx'
@@ -61,14 +61,9 @@ function cellFromEvent(
   if (rect.width <= 0 || rect.height <= 0) return { row, col }
   const relX = Math.min(Math.max(event.clientX - rect.left, 0), rect.width - 0.01)
   const relY = Math.min(Math.max(event.clientY - rect.top, 0), rect.height - 0.01)
-  const imageCol = Math.min(
-    IMAGE_BLOCK_SIZE - 1,
-    Math.floor((relX / rect.width) * IMAGE_BLOCK_SIZE),
-  )
-  const imageRow = Math.min(
-    IMAGE_BLOCK_SIZE - 1,
-    Math.floor((relY / rect.height) * IMAGE_BLOCK_SIZE),
-  )
+  const span = pictureBlockSize(size)
+  const imageCol = Math.min(span - 1, Math.floor((relX / rect.width) * span))
+  const imageRow = Math.min(span - 1, Math.floor((relY / rect.height) * span))
   const next = { row: row + imageRow, col: col + imageCol }
   if (next.row >= size || next.col >= size) return { row, col }
   return next
@@ -121,12 +116,13 @@ export function WordGrid(props: WordGridProps) {
 
   const previewKeys = new Set(preview.map((c) => cellKey(c.row, c.col)))
   const imageBlocks = props.imageBlocks ?? []
+  const span = pictureBlockSize(size)
   const imageByOrigin = new Map<string, ImageBlock>()
   const covered = new Set<string>()
   for (const block of imageBlocks) {
     imageByOrigin.set(cellKey(block.row, block.col), block)
-    for (let dr = 0; dr < IMAGE_BLOCK_SIZE; dr++) {
-      for (let dc = 0; dc < IMAGE_BLOCK_SIZE; dc++) {
+    for (let dr = 0; dr < span; dr++) {
+      for (let dc = 0; dc < span; dc++) {
         covered.add(cellKey(block.row + dr, block.col + dc))
       }
     }
@@ -171,8 +167,8 @@ export function WordGrid(props: WordGridProps) {
                   role="gridcell"
                   aria-label={`תמונה: ${boardImageLabel(image.imageId)}`}
                   style={{
-                    gridRow: `${r + 1} / span ${IMAGE_BLOCK_SIZE}`,
-                    gridColumn: `${c + 1} / span ${IMAGE_BLOCK_SIZE}`,
+                    gridRow: `${r + 1} / span ${span}`,
+                    gridColumn: `${c + 1} / span ${span}`,
                   }}
                 >
                   <BoardImage id={image.imageId} />

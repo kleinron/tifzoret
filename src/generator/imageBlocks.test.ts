@@ -5,13 +5,13 @@ import {
   blockedCellKeys,
   clampImageCount,
   DEFAULT_IMAGE_COUNT,
-  IMAGE_BLOCK_SIZE,
   imageBlockCells,
   imageBlocksOverlap,
   imageBlocksShareEdge,
   imagePlacementErrorHe,
   keptImageBlocks,
   maxImageBlocks,
+  pictureBlockSize,
   placeImageBlocks,
   resolveImageBlocks,
   type ImageBlock,
@@ -20,10 +20,14 @@ import { mulberry32 } from './rng.ts'
 
 describe('maxImageBlocks', () => {
   it('counts blocks that may touch at a corner but not along an edge', () => {
-    expect(IMAGE_BLOCK_SIZE).toBe(4)
+    expect(pictureBlockSize(8)).toBe(3)
+    expect(pictureBlockSize(10)).toBe(3)
+    expect(pictureBlockSize(11)).toBe(4)
+    expect(pictureBlockSize(12)).toBe(4)
     expect(DEFAULT_IMAGE_COUNT).toBe(1)
-    expect(maxImageBlocks(8)).toBe(2)
-    expect(maxImageBlocks(9)).toBe(4)
+    expect(maxImageBlocks(8)).toBe(4)
+    expect(maxImageBlocks(9)).toBe(5)
+    expect(maxImageBlocks(10)).toBe(6)
     expect(maxImageBlocks(11)).toBe(4)
     expect(maxImageBlocks(12)).toBe(5)
     expect(maxImageBlocks(13)).toBe(6)
@@ -35,14 +39,15 @@ describe('maxImageBlocks', () => {
     expect(maxImageBlocks(19)).toBe(16)
     expect(maxImageBlocks(20)).toBe(16)
     expect(maxImageBlocks(4)).toBe(1)
-    expect(maxImageBlocks(3)).toBe(0)
+    expect(maxImageBlocks(3)).toBe(1)
+    expect(maxImageBlocks(2)).toBe(0)
     expect(maxImageBlocks(Number.NaN)).toBe(0)
   })
 })
 
 describe('clampImageCount', () => {
   it('clamps to the board and keeps zero', () => {
-    expect(clampImageCount(9, 8)).toBe(2)
+    expect(clampImageCount(9, 8)).toBe(4)
     expect(clampImageCount(9, 12)).toBe(5)
     expect(clampImageCount(9, 14)).toBe(9)
     expect(clampImageCount(0, 12)).toBe(0)
@@ -60,22 +65,23 @@ describe('placeImageBlocks', () => {
     count: number,
   ) {
     expect(blocks).toHaveLength(count)
-    const keys = blockedCellKeys(blocks)
-    expect(keys.size).toBe(count * IMAGE_BLOCK_SIZE * IMAGE_BLOCK_SIZE)
+    const span = pictureBlockSize(size)
+    const keys = blockedCellKeys(blocks, size)
+    expect(keys.size).toBe(count * span * span)
     for (const block of blocks) {
       expect(BOARD_IMAGE_IDS).toContain(block.imageId)
       expect(block.row).toBeGreaterThanOrEqual(0)
       expect(block.col).toBeGreaterThanOrEqual(0)
-      expect(block.row + IMAGE_BLOCK_SIZE).toBeLessThanOrEqual(size)
-      expect(block.col + IMAGE_BLOCK_SIZE).toBeLessThanOrEqual(size)
-      expect(imageBlockCells(block)).toHaveLength(16)
+      expect(block.row + span).toBeLessThanOrEqual(size)
+      expect(block.col + span).toBeLessThanOrEqual(size)
+      expect(imageBlockCells(block, size)).toHaveLength(span * span)
     }
     expect(new Set(blocks.map((block) => block.imageId)).size).toBe(blocks.length)
     for (let i = 0; i < blocks.length; i++) {
       for (let j = i + 1; j < blocks.length; j++) {
-        expect(imageBlocksOverlap(blocks[i]!, blocks[j]!)).toBe(false)
+        expect(imageBlocksOverlap(blocks[i]!, blocks[j]!, size)).toBe(false)
         if (count >= 2) {
-          expect(imageBlocksShareEdge(blocks[i]!, blocks[j]!)).toBe(false)
+          expect(imageBlocksShareEdge(blocks[i]!, blocks[j]!, size)).toBe(false)
         }
       }
     }
@@ -94,57 +100,68 @@ describe('placeImageBlocks', () => {
   it('returns null when the count cannot fit', () => {
     expect(placeImageBlocks(8, 5, mulberry32(1))).toBeNull()
     expect(placeImageBlocks(12, -1, mulberry32(1))).toBeNull()
-    expect(placeImageBlocks(8, 3, mulberry32(1))).toBeNull()
+    expect(placeImageBlocks(10, 7, mulberry32(1))).toBeNull()
     expect(imagePlacementErrorHe(5, 8)).toBe(
-      'לא הצלחנו למקם 5 תמונות של 4×4 בלי צלע משותפת על לוח 8×8. אפשר לכל היותר 2.',
+      'לא הצלחנו למקם 5 תמונות של 3×3 בלי צלע משותפת על לוח 8×8. אפשר לכל היותר 4.',
+    )
+    expect(imagePlacementErrorHe(6, 12)).toBe(
+      'לא הצלחנו למקם 6 תמונות של 4×4 בלי צלע משותפת על לוח 12×12. אפשר לכל היותר 5.',
     )
   })
 
   it('rejects a full or partial shared edge and accepts a corner', () => {
     const origin = { row: 0, col: 0 }
-    expect(imageBlocksShareEdge(origin, { row: 0, col: 4 })).toBe(true)
-    expect(imageBlocksShareEdge(origin, { row: 2, col: 4 })).toBe(true)
-    expect(imageBlocksShareEdge(origin, { row: 1, col: 4 })).toBe(true)
-    expect(imageBlocksShareEdge(origin, { row: 4, col: 0 })).toBe(true)
-    expect(imageBlocksShareEdge(origin, { row: 4, col: 2 })).toBe(true)
-    expect(imageBlocksShareEdge(origin, { row: 4, col: 4 })).toBe(false)
-    expect(imageBlocksOverlap(origin, { row: 4, col: 4 })).toBe(false)
-    expect(imageBlocksShareEdge(origin, { row: 0, col: 5 })).toBe(false)
-    expect(imageBlocksShareEdge(origin, { row: 3, col: 5 })).toBe(false)
-    expect(imageBlocksShareEdge(origin, { row: 5, col: 5 })).toBe(false)
+    expect(imageBlocksShareEdge(origin, { row: 0, col: 4 }, 12)).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 2, col: 4 }, 12)).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 1, col: 4 }, 12)).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 4, col: 0 }, 12)).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 4, col: 2 }, 12)).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 4, col: 4 }, 12)).toBe(false)
+    expect(imageBlocksOverlap(origin, { row: 4, col: 4 }, 12)).toBe(false)
+    expect(imageBlocksShareEdge(origin, { row: 0, col: 5 }, 12)).toBe(false)
+    expect(imageBlocksShareEdge(origin, { row: 3, col: 5 }, 12)).toBe(false)
+    expect(imageBlocksShareEdge(origin, { row: 5, col: 5 }, 12)).toBe(false)
+
+    expect(imageBlocksShareEdge(origin, { row: 0, col: 3 }, 8)).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 2, col: 3 }, 10)).toBe(true)
+    expect(imageBlocksShareEdge(origin, { row: 3, col: 3 }, 8)).toBe(false)
+    expect(imageBlocksOverlap(origin, { row: 3, col: 3 }, 8)).toBe(false)
+    expect(imageBlocksShareEdge(origin, { row: 0, col: 4 }, 8)).toBe(false)
   })
 
-  it('places the only two 8×8 layouts, which meet at a corner', () => {
-    const seen = new Set<string>()
+  it('places 3×3 blocks on an 8×8 board up to the maximum of four', () => {
     for (let seed = 1; seed <= 24; seed++) {
-      const blocks = placeImageBlocks(8, 2, mulberry32(seed))
+      const blocks = placeImageBlocks(8, 4, mulberry32(seed))
       expect(blocks).not.toBeNull()
-      const origins = blocks!.map((block) => `${block.row},${block.col}`).sort()
-      expect(origins).toEqual(
-        origins[0] === '0,0' ? ['0,0', '4,4'] : ['0,4', '4,0'],
-      )
-      expect(imageBlocksShareEdge(blocks![0]!, blocks![1]!)).toBe(false)
-      expect(imageBlocksOverlap(blocks![0]!, blocks![1]!)).toBe(false)
-      seen.add(origins.join('|'))
+      assertPacked(blocks!, 8, 4)
+      expect(imageBlockCells(blocks![0]!, 8)).toHaveLength(9)
     }
-    expect(seen).toEqual(new Set(['0,0|4,4', '0,4|4,0']))
   })
 
-  it('packs four gapped blocks on a 9×9 board at the only origins', () => {
-    const blocks = placeImageBlocks(9, 4, mulberry32(3))
+  it('packs five 3×3 blocks on a 9×9 board at the only origins', () => {
+    const blocks = placeImageBlocks(9, 5, mulberry32(3))
     expect(blocks).not.toBeNull()
     const origins = blocks!.map((block) => `${block.row},${block.col}`).sort()
-    expect(origins).toEqual(['0,0', '0,5', '5,0', '5,5'])
-    for (const cell of blockedCellKeys(blocks!)) {
+    expect(origins).toEqual(['0,0', '0,6', '3,3', '6,0', '6,6'])
+    for (const cell of blockedCellKeys(blocks!, 9)) {
       expect(BLOCKED_CELL).toBe('\u0000')
       expect(cell).toMatch(/^\d,\d$/)
     }
-    expect(blockedCellKeys(blocks!).size).toBe(64)
-    assertPacked(blocks!, 9, 4)
+    expect(blockedCellKeys(blocks!, 9).size).toBe(45)
+    assertPacked(blocks!, 9, 5)
+  })
+
+  it('packs six 3×3 blocks on a 10×10 board', () => {
+    for (const seed of [1, 3, 8, 21]) {
+      const blocks = placeImageBlocks(10, 6, mulberry32(seed))
+      expect(blocks, `seed ${seed}`).not.toBeNull()
+      assertPacked(blocks!, 10, 6)
+      expect(imageBlockCells(blocks![0]!, 10)).toHaveLength(9)
+    }
   })
 
   it('places random in-bounds blocks that do not share an edge', () => {
-    for (const size of [8, 12, 13, 15, 17, 18, 20]) {
+    for (const size of [8, 10, 12, 13, 15, 17, 18, 20]) {
       const max = maxImageBlocks(size)
       for (const count of [1, Math.ceil(max / 2), max]) {
         for (const seed of [1, 8, 42]) {
@@ -179,7 +196,7 @@ describe('placeImageBlocks', () => {
     }
   })
 
-  it('does not always sit on the 4-cell lattice', () => {
+  it('does not always sit on the block lattice', () => {
     const origins = new Set<string>()
     let staggered = false
     for (let seed = 1; seed <= 24; seed++) {
@@ -189,6 +206,13 @@ describe('placeImageBlocks', () => {
     }
     expect(origins.size).toBeGreaterThan(3)
     expect(staggered).toBe(true)
+
+    let staggeredSmall = false
+    for (let seed = 1; seed <= 24; seed++) {
+      const [block] = placeImageBlocks(8, 1, mulberry32(seed))!
+      if (block.row % 3 !== 0 || block.col % 3 !== 0) staggeredSmall = true
+    }
+    expect(staggeredSmall).toBe(true)
   })
 
   it('keeps a legal set without drawing from the rng', () => {
@@ -215,7 +239,7 @@ describe('placeImageBlocks', () => {
       ]),
     ).toBeNull()
     expect(keptImageBlocks(12, [{ imageId: 'nope' as ImageBlock['imageId'], row: 0, col: 0 }])).toBeNull()
-    expect(keptImageBlocks(8, [{ imageId: 'fish', row: 5, col: 0 }])).toBeNull()
+    expect(keptImageBlocks(8, [{ imageId: 'fish', row: 6, col: 0 }])).toBeNull()
     expect(keptImageBlocks(12, [])).toBeNull()
     expect(
       keptImageBlocks(12, [
@@ -225,26 +249,26 @@ describe('placeImageBlocks', () => {
     ).toBeNull()
   })
 
-  it('adds a corner partner beside a picture that stays put', () => {
+  it('adds a partner beside a picture that stays put', () => {
     const existing: ImageBlock[] = [{ imageId: 'cat', row: 0, col: 0 }]
     const blocks = resolveImageBlocks(8, 2, mulberry32(1), {
       policy: 'adapt',
       existing,
     })
-    expect(blocks).toEqual([
-      existing[0],
-      expect.objectContaining({ row: 4, col: 4 }),
-    ])
-    expect(imageBlocksShareEdge(blocks![0]!, blocks![1]!)).toBe(false)
+    expect(blocks?.[0]).toEqual(existing[0])
+    expect(blocks).toHaveLength(2)
+    expect(imageBlocksShareEdge(blocks![0]!, blocks![1]!, 8)).toBe(false)
+    expect(blocks![1]!.row + pictureBlockSize(8)).toBeLessThanOrEqual(8)
+    expect(blocks![1]!.col + pictureBlockSize(8)).toBeLessThanOrEqual(8)
   })
 
   it('drops a picture that blocks the requested count and places a legal set', () => {
-    const blocks = resolveImageBlocks(8, 2, mulberry32(4), {
+    const blocks = resolveImageBlocks(8, 4, mulberry32(4), {
       policy: 'adapt',
       existing: [{ imageId: 'cat', row: 2, col: 2 }],
     })
     expect(blocks).not.toBeNull()
-    assertPacked(blocks!, 8, 2)
+    assertPacked(blocks!, 8, 4)
     expect(blocks!.some((block) => block.row === 2 && block.col === 2)).toBe(false)
   })
 
@@ -272,7 +296,7 @@ describe('placeImageBlocks', () => {
 
     const replaced = resolveImageBlocks(8, 1, mulberry32(6), {
       policy: 'adapt',
-      existing: [{ imageId: 'fish', row: 5, col: 0 }, first],
+      existing: [{ imageId: 'fish', row: 6, col: 0 }, first],
     })
     expect(replaced).toEqual([first])
   })

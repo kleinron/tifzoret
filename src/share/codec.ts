@@ -43,7 +43,7 @@ export const SHARE_VERSION = 2
 /** Version 1 links predate image blocks and decode with imageCount 0. */
 const SHARE_VERSION_V1 = 1
 
-/** 5-bit field. The board clamps further to how many 4×4 blocks fit. */
+/** 5-bit field. The board clamps further to how many picture blocks fit. */
 export const MAX_SHARE_IMAGE_COUNT = 31
 export const SHARE_QUERY_PARAM = 'p'
 
@@ -96,7 +96,7 @@ export type ShareSettings = {
   fontSize: number
   randomAge10: boolean
   noFinals: boolean
-  /** 4×4 pictures to place. Origins are not shared; they re-roll on generate. */
+  /** Pictures to place. Origins are not shared; they re-roll on generate. */
   imageCount: number
 }
 
