@@ -98,7 +98,7 @@ export function maxImageBlocks(gridSize: number): number {
 }
 
 /** Catalog ids with repeats removed, first occurrence kept. */
-export function distinctImageIds(ids: readonly BoardImageId[]): BoardImageId[] {
+function distinctImageIds(ids: readonly BoardImageId[]): BoardImageId[] {
   const seen = new Set<BoardImageId>()
   const unique: BoardImageId[] = []
   for (const id of ids) {
@@ -109,30 +109,8 @@ export function distinctImageIds(ids: readonly BoardImageId[]): BoardImageId[] {
   return unique
 }
 
-/** How many different drawings the catalog can supply. */
-export function distinctDrawingCount(
-  imageIds: readonly BoardImageId[] = BOARD_IMAGE_IDS,
-): number {
-  return distinctImageIds(imageIds).length
-}
-
-/**
- * Pictures that can actually be placed: the board packing limit and the
- * number of distinct drawings, whichever is smaller.
- */
-export function maxDistinctImages(
-  gridSize: number,
-  imageIds: readonly BoardImageId[] = BOARD_IMAGE_IDS,
-): number {
-  return Math.min(maxImageBlocks(gridSize), distinctDrawingCount(imageIds))
-}
-
-export function clampImageCount(
-  count: number,
-  gridSize: number,
-  imageIds: readonly BoardImageId[] = BOARD_IMAGE_IDS,
-): number {
-  const max = maxDistinctImages(gridSize, imageIds)
+export function clampImageCount(count: number, gridSize: number): number {
+  const max = maxImageBlocks(gridSize)
   if (!Number.isFinite(count)) return Math.min(DEFAULT_IMAGE_COUNT, max)
   return Math.min(max, Math.max(0, Math.round(count)))
 }
@@ -478,7 +456,10 @@ function adaptedImageBlocks(
 ): ImageBlock[] | null {
   if (!Number.isInteger(count) || count < 0) return null
   if (count === 0) return []
+  if (!Number.isInteger(size) || count > maxImageBlocks(size)) return null
   const catalog = distinctImageIds(imageIds)
+  // The shipped catalog is large enough for every product board. A shorter
+  // list still places only distinct drawings, fewer than `count` when needed.
   const target = Math.min(count, catalog.length)
   if (target === 0) return null
   const retained = retainImageBlocks(existing, size, target)
@@ -542,12 +523,13 @@ export function resolveImageBlocks(
  * A single picture may sit on any in-bounds origin. Two or more pictures
  * may meet at a corner, but not along an edge: overlapping rows need a
  * one-cell column gap, and overlapping columns need a one-cell row gap.
- * Returns null when that many blocks cannot fit. Count 0 returns an empty
- * list and does not draw from `rng`.
+ * Returns null when `count` cannot fit on the board. Count 0 returns an
+ * empty list and does not draw from `rng`.
  *
- * Every placed block uses a different drawing. When `count` is larger than
- * the number of distinct ids, only that many blocks are placed — drawings
- * are never repeated to fill the request.
+ * Every placed block uses a different drawing. The shipped catalog has one
+ * drawing per picture that fits on any current board, so a legal count is
+ * placed in full. A shorter id list is a fallback: place that many distinct
+ * drawings and do not repeat one to fill the request.
  */
 export function placeImageBlocks(
   size: number,
@@ -557,11 +539,10 @@ export function placeImageBlocks(
 ): ImageBlock[] | null {
   if (count === 0) return []
   if (!Number.isInteger(count) || count < 0) return null
-  if (!Number.isInteger(size)) return null
+  if (!Number.isInteger(size) || count > maxImageBlocks(size)) return null
   const available = distinctImageIds(imageIds)
   if (available.length === 0) return null
   const placeCount = Math.min(count, available.length)
-  if (placeCount > maxImageBlocks(size)) return null
 
   const origins = randomOrigins(size, placeCount, rng)
   if (!origins || origins.length !== placeCount) return null

@@ -49,8 +49,7 @@ describe('clampImageCount', () => {
     expect(clampImageCount(-4, 12)).toBe(0)
     expect(clampImageCount(1.6, 12)).toBe(2)
     expect(clampImageCount(Number.NaN, 12)).toBe(1)
-    expect(clampImageCount(9, 20, ['cat', 'sun', 'fish'])).toBe(3)
-    expect(clampImageCount(4, 8, ['cat', 'sun', 'fish'])).toBe(2)
+    expect(clampImageCount(99, 20)).toBe(16)
   })
 })
 
@@ -287,6 +286,23 @@ describe('placeImageBlocks', () => {
         placeImageBlocks(12, 3, mulberry32(seed)),
       )
     }
+  })
+
+  it('places exactly N distinct drawings on every current board', () => {
+    expect(BOARD_IMAGE_IDS.length).toBe(16)
+    expect(new Set(BOARD_IMAGE_IDS).size).toBe(16)
+    for (let size = 8; size <= 20; size++) {
+      const max = maxImageBlocks(size)
+      expect(max, `size ${size}`).toBeLessThanOrEqual(BOARD_IMAGE_IDS.length)
+      expect(clampImageCount(max, size)).toBe(max)
+      for (const count of [1, max]) {
+        const blocks = placeImageBlocks(size, count, mulberry32(size * 10 + count))
+        expect(blocks, `${size}×${size} count ${count}`).toHaveLength(count)
+        expect(new Set(blocks!.map((block) => block.imageId)).size).toBe(count)
+        assertPacked(blocks!, size, count)
+      }
+    }
+    expect(placeImageBlocks(20, 17, mulberry32(1))).toBeNull()
   })
 
   it('places a different drawing in every block', () => {

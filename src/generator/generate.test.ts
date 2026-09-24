@@ -507,6 +507,26 @@ describe('generatePuzzle uniqueness', () => {
       expect(ids).toHaveLength(3)
       expect(new Set(ids).size).toBe(3)
     }
+
+    for (const [size, imageCount] of [
+      [8, 2],
+      [12, 5],
+      [20, 16],
+    ] as const) {
+      const full = success(
+        generatePuzzle({
+          size,
+          userWords: ['שמש', 'ירח', 'ספר'],
+          directions: [...DEFAULT_DIRECTION_IDS],
+          noFinalLetters: false,
+          randomAge10Fill: false,
+          imageCount,
+          seed: 4,
+        }),
+      )
+      expect(full.imageBlocks, `${size}×${size}`).toHaveLength(imageCount)
+      expect(new Set(full.imageBlocks.map((block) => block.imageId)).size).toBe(imageCount)
+    }
   })
 
   it('fails when no directions are selected', () => {

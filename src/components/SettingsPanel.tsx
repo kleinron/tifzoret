@@ -5,7 +5,7 @@ import {
   type Direction,
   type DirectionId,
 } from '../generator/directions.ts'
-import { clampImageCount, maxDistinctImages } from '../generator/imageBlocks.ts'
+import { clampImageCount, maxImageBlocks } from '../generator/imageBlocks.ts'
 import type { FieldIssue } from '../generator/wordLimits.ts'
 import {
   AGE10_FILL_LABEL,
@@ -167,7 +167,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
 
   const atLimit = props.bank.length >= props.bankLimit
   const invalid = props.issues.length > 0
-  const maxImages = maxDistinctImages(props.gridSize)
+  const maxImages = maxImageBlocks(props.gridSize)
   const imageCount = clampImageCount(props.imageCount, props.gridSize)
 
   return (
