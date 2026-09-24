@@ -265,7 +265,7 @@ export default function App() {
         skipped.push(messageRandomFillCapped())
       }
       if (result.extraWords.length) {
-        skipped.push(`נוספו ${result.extraWords.length} מילים לגיל 10`)
+        skipped.push(`נוספו ${result.extraWords.length} מילים ידידותיות`)
       }
       setNotes(skipped)
       setGrid(result.grid)

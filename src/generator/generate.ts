@@ -433,7 +433,7 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
 
   if (words.length === 0) {
     return fail(
-      'No words to place. Add words or enable the age-10 filler.',
+      'No words to place. Add words or enable automatic fill.',
       `אין מילים לשיבוץ. הוסיפו מילים או הפעילו «${AGE10_FILL_LABEL}».`,
       skips,
     )
