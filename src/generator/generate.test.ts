@@ -473,6 +473,62 @@ describe('generatePuzzle uniqueness', () => {
     }
   })
 
+  it('places a distinct drawing for each picture, including when the count grows', () => {
+    for (const seed of [1, 2, 3, 7, 11, 21, 42]) {
+      const fresh = success(
+        generatePuzzle({
+          size: 15,
+          userWords: ['שמש', 'ירח', 'ספר'],
+          directions: [...DEFAULT_DIRECTION_IDS],
+          noFinalLetters: false,
+          randomAge10Fill: false,
+          imageCount: 3,
+          seed,
+        }),
+      )
+      expect(fresh.imageBlocks).toHaveLength(3)
+      expect(new Set(fresh.imageBlocks.map((block) => block.imageId)).size).toBe(3)
+
+      const grown = success(
+        generatePuzzle({
+          size: 12,
+          userWords: ['שמש', 'ירח', 'ספר'],
+          directions: [...DEFAULT_DIRECTION_IDS],
+          noFinalLetters: false,
+          randomAge10Fill: false,
+          imageCount: 3,
+          imagePolicy: 'adapt',
+          pinnedImageBlocks: [{ imageId: 'cat', row: 0, col: 0 }],
+          seed,
+        }),
+      )
+      const ids = grown.imageBlocks.map((block) => block.imageId)
+      expect(grown.imageBlocks[0]).toEqual({ imageId: 'cat', row: 0, col: 0 })
+      expect(ids).toHaveLength(3)
+      expect(new Set(ids).size).toBe(3)
+    }
+
+    for (const [size, imageCount] of [
+      [8, 2],
+      [12, 5],
+      [20, 16],
+    ] as const) {
+      const full = success(
+        generatePuzzle({
+          size,
+          userWords: ['שמש', 'ירח', 'ספר'],
+          directions: [...DEFAULT_DIRECTION_IDS],
+          noFinalLetters: false,
+          randomAge10Fill: false,
+          imageCount,
+          seed: 4,
+        }),
+      )
+      expect(full.imageBlocks, `${size}×${size}`).toHaveLength(imageCount)
+      expect(new Set(full.imageBlocks.map((block) => block.imageId)).size).toBe(imageCount)
+    }
+  })
+
   it('fails when no directions are selected', () => {
     const result = generatePuzzle({
       size: 10,

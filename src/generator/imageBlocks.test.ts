@@ -49,6 +49,7 @@ describe('clampImageCount', () => {
     expect(clampImageCount(-4, 12)).toBe(0)
     expect(clampImageCount(1.6, 12)).toBe(2)
     expect(clampImageCount(Number.NaN, 12)).toBe(1)
+    expect(clampImageCount(99, 20)).toBe(16)
   })
 })
 
@@ -69,6 +70,7 @@ describe('placeImageBlocks', () => {
       expect(block.col + IMAGE_BLOCK_SIZE).toBeLessThanOrEqual(size)
       expect(imageBlockCells(block)).toHaveLength(16)
     }
+    expect(new Set(blocks.map((block) => block.imageId)).size).toBe(blocks.length)
     for (let i = 0; i < blocks.length; i++) {
       for (let j = i + 1; j < blocks.length; j++) {
         expect(imageBlocksOverlap(blocks[i]!, blocks[j]!)).toBe(false)
@@ -215,6 +217,12 @@ describe('placeImageBlocks', () => {
     expect(keptImageBlocks(12, [{ imageId: 'nope' as ImageBlock['imageId'], row: 0, col: 0 }])).toBeNull()
     expect(keptImageBlocks(8, [{ imageId: 'fish', row: 5, col: 0 }])).toBeNull()
     expect(keptImageBlocks(12, [])).toBeNull()
+    expect(
+      keptImageBlocks(12, [
+        { imageId: 'cat', row: 0, col: 0 },
+        { imageId: 'cat', row: 0, col: 5 },
+      ]),
+    ).toBeNull()
   })
 
   it('adds a corner partner beside a picture that stays put', () => {
@@ -280,12 +288,108 @@ describe('placeImageBlocks', () => {
     }
   })
 
-  it('cycles drawings so the first catalog pass has no repeats', () => {
+  it('places exactly N distinct drawings on every current board', () => {
+    expect(BOARD_IMAGE_IDS.length).toBe(16)
+    expect(new Set(BOARD_IMAGE_IDS).size).toBe(16)
+    for (let size = 8; size <= 20; size++) {
+      const max = maxImageBlocks(size)
+      expect(max, `size ${size}`).toBeLessThanOrEqual(BOARD_IMAGE_IDS.length)
+      expect(clampImageCount(max, size)).toBe(max)
+      for (const count of [1, max]) {
+        const blocks = placeImageBlocks(size, count, mulberry32(size * 10 + count))
+        expect(blocks, `${size}×${size} count ${count}`).toHaveLength(count)
+        expect(new Set(blocks!.map((block) => block.imageId)).size).toBe(count)
+        assertPacked(blocks!, size, count)
+      }
+    }
+    expect(placeImageBlocks(20, 17, mulberry32(1))).toBeNull()
+  })
+
+  it('places a different drawing in every block', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const blocks = placeImageBlocks(15, 3, mulberry32(seed))
+      expect(blocks, `seed ${seed}`).not.toBeNull()
+      expect(blocks).toHaveLength(3)
+      expect(new Set(blocks!.map((block) => block.imageId)).size).toBe(3)
+      assertPacked(blocks!, 15, 3)
+    }
+  })
+
+  it('clamps to the distinct drawings instead of repeating a catalog that is too small', () => {
+    const few = ['cat', 'sun', 'fish'] as const
+    const repeated = ['cat', 'cat', 'sun', 'fish', 'sun'] as const
     for (let seed = 0; seed < 12; seed++) {
       const blocks = placeImageBlocks(24, BOARD_IMAGE_IDS.length + 1, mulberry32(seed))!
       const ids = blocks.map((block) => block.imageId)
-      expect(new Set(ids.slice(0, BOARD_IMAGE_IDS.length)).size).toBe(BOARD_IMAGE_IDS.length)
-      expect(ids[ids.length - 1]).not.toBe(ids[ids.length - 2])
+      expect(ids).toHaveLength(BOARD_IMAGE_IDS.length)
+      expect(new Set(ids).size).toBe(BOARD_IMAGE_IDS.length)
+    }
+    for (let seed = 1; seed <= 20; seed++) {
+      const blocks = placeImageBlocks(20, 5, mulberry32(seed), [...few])!
+      expect(blocks).toHaveLength(few.length)
+      expect(new Set(blocks.map((block) => block.imageId))).toEqual(new Set(few))
+      assertPacked(blocks, 20, few.length)
+
+      const deduped = placeImageBlocks(20, 5, mulberry32(seed), [...repeated])!
+      expect(deduped).toHaveLength(3)
+      expect(new Set(deduped.map((block) => block.imageId)).size).toBe(3)
+    }
+  })
+
+  it('adds drawings that are not already on the board when the count grows', () => {
+    const existing: ImageBlock[] = [{ imageId: 'cat', row: 0, col: 0 }]
+    const few = ['cat', 'sun', 'fish'] as const
+    for (let seed = 1; seed <= 24; seed++) {
+      const blocks = resolveImageBlocks(12, 3, mulberry32(seed), {
+        policy: 'adapt',
+        existing,
+        imageIds: [...few],
+      })
+      expect(blocks, `seed ${seed}`).not.toBeNull()
+      expect(blocks).toHaveLength(3)
+      expect(blocks![0]).toEqual(existing[0])
+      expect(new Set(blocks!.map((block) => block.imageId)).size).toBe(3)
+      assertPacked(blocks!, 12, 3)
+    }
+  })
+
+  it('does not copy a drawing when the catalog has nothing new to add', () => {
+    const existing: ImageBlock[] = [
+      { imageId: 'cat', row: 0, col: 0 },
+      { imageId: 'sun', row: 0, col: 5 },
+    ]
+    let draws = 0
+    const blocks = resolveImageBlocks(
+      12,
+      3,
+      () => {
+        draws += 1
+        return 0.4
+      },
+      { policy: 'adapt', existing, imageIds: ['cat', 'sun'] },
+    )
+    expect(blocks).toEqual(existing)
+    expect(draws).toBe(0)
+    expect(new Set(blocks!.map((block) => block.imageId)).size).toBe(2)
+  })
+
+  it('replaces a repeated drawing on reshuffle instead of keeping the copy', () => {
+    const existing: ImageBlock[] = [
+      { imageId: 'cat', row: 0, col: 0 },
+      { imageId: 'cat', row: 0, col: 5 },
+    ]
+    for (let seed = 1; seed <= 12; seed++) {
+      const blocks = resolveImageBlocks(12, 2, mulberry32(seed), {
+        policy: 'keep',
+        existing,
+        imageIds: ['cat', 'sun', 'fish'],
+      })
+      expect(blocks, `seed ${seed}`).not.toBeNull()
+      expect(blocks).toHaveLength(2)
+      expect(blocks![0]).toEqual(existing[0])
+      expect(blocks![1]!.imageId).not.toBe('cat')
+      expect(new Set(blocks!.map((block) => block.imageId)).size).toBe(2)
+      assertPacked(blocks!, 12, 2)
     }
   })
 })
