@@ -12,6 +12,7 @@ import {
 } from './generator/directions.ts'
 import { generatePuzzle, lettersAlong } from './generator/generate.ts'
 import {
+  boardAfterFailedGenerate,
   imagePolicyForRefresh,
   puzzleRefreshDelay,
   puzzleSettingsKey,
@@ -255,6 +256,15 @@ export default function App() {
       setBusy(false)
       if (!result.ok) {
         setError(result.errorHe)
+        const next = boardAfterFailedGenerate(live.imageBlocks, live.imageIds)
+        if (next.clearBoard) {
+          setGrid(null)
+          setImageBlocks(next.imageBlocks)
+          setPuzzleWords([])
+          setFoundWords(new Set())
+          setFoundCells(new Map())
+          setNotes([])
+        }
         return
       }
       const skipped: string[] = []
@@ -313,9 +323,10 @@ export default function App() {
   }
 
   const status = useMemo(() => {
-    if (!grid) return 'יוצר תפזורת…'
-    return `${puzzleWords.length} מילים · ${grid.length}×${grid.length}`
-  }, [grid, puzzleWords.length])
+    if (grid) return `${puzzleWords.length} מילים · ${grid.length}×${grid.length}`
+    if (error) return null
+    return 'יוצר תפזורת…'
+  }, [grid, puzzleWords.length, error])
 
   const settingsKey = puzzleSettingsKey({
     directions: [...enabledDirs],
@@ -428,7 +439,7 @@ export default function App() {
               ))}
             </ul>
           ) : null}
-          <p className="status no-print">{status}</p>
+          {status ? <p className="status no-print">{status}</p> : null}
           {grid ? (
             <WordGrid
               grid={grid}

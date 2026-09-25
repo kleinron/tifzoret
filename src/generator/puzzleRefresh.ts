@@ -1,4 +1,5 @@
-import type { ImagePolicy } from './imageBlocks.ts'
+import type { BoardImageId } from '../images/catalog.ts'
+import type { ImageBlock, ImagePolicy } from './imageBlocks.ts'
 
 /** Why the board is being built again. */
 export type PuzzleRefresh = 'settings' | 'reshuffle'
@@ -71,4 +72,21 @@ export function puzzleSettingsKey(input: {
     input.noFinals ? '1' : '0',
     input.holidayPack ?? 'regular',
   ].join('\u0002')
+}
+
+/**
+ * A failed build keeps the last board only when every drawing still belongs
+ * to the catalog the user has selected. Otherwise the letter grid is cleared
+ * and drawings from the previous pack are dropped.
+ */
+export function boardAfterFailedGenerate(
+  imageBlocks: readonly ImageBlock[],
+  imageIds: readonly BoardImageId[],
+): { clearBoard: boolean; imageBlocks: ImageBlock[] } {
+  const allowed = new Set<string>(imageIds)
+  const compatible = imageBlocks.filter((block) => allowed.has(block.imageId))
+  return {
+    clearBoard: compatible.length !== imageBlocks.length,
+    imageBlocks: compatible,
+  }
 }
