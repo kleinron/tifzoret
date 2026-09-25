@@ -323,9 +323,10 @@ export default function App() {
   }
 
   const status = useMemo(() => {
-    if (!grid) return 'יוצר תפזורת…'
-    return `${puzzleWords.length} מילים · ${grid.length}×${grid.length}`
-  }, [grid, puzzleWords.length])
+    if (grid) return `${puzzleWords.length} מילים · ${grid.length}×${grid.length}`
+    if (error) return null
+    return 'יוצר תפזורת…'
+  }, [grid, puzzleWords.length, error])
 
   const settingsKey = puzzleSettingsKey({
     directions: [...enabledDirs],
@@ -438,7 +439,7 @@ export default function App() {
               ))}
             </ul>
           ) : null}
-          <p className="status no-print">{status}</p>
+          {status ? <p className="status no-print">{status}</p> : null}
           {grid ? (
             <WordGrid
               grid={grid}
