@@ -12,6 +12,7 @@ import {
 } from './generator/directions.ts'
 import { generatePuzzle, lettersAlong } from './generator/generate.ts'
 import {
+  boardAfterFailedGenerate,
   imagePolicyForRefresh,
   puzzleRefreshDelay,
   puzzleSettingsKey,
@@ -255,6 +256,15 @@ export default function App() {
       setBusy(false)
       if (!result.ok) {
         setError(result.errorHe)
+        const next = boardAfterFailedGenerate(live.imageBlocks, live.imageIds)
+        if (next.clearBoard) {
+          setGrid(null)
+          setImageBlocks(next.imageBlocks)
+          setPuzzleWords([])
+          setFoundWords(new Set())
+          setFoundCells(new Map())
+          setNotes([])
+        }
         return
       }
       const skipped: string[] = []
