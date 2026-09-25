@@ -379,17 +379,22 @@ function pickImages(
  */
 export type ImagePolicy = 'roll' | 'keep' | 'adapt'
 
-function isBoardImageId(id: string): id is BoardImageId {
-  return (BOARD_IMAGE_IDS as readonly string[]).includes(id)
+function allowedImageIds(ids: readonly BoardImageId[]): Set<string> {
+  return new Set(ids)
 }
 
 function copyBlock(block: ImageBlock): ImageBlock {
   return { imageId: block.imageId, row: block.row, col: block.col }
 }
 
-function blockFits(size: number, block: ImageBlock): boolean {
+/** In bounds, and a drawing from the catalog that is active for this placement. */
+function blockFits(
+  size: number,
+  block: ImageBlock,
+  allowed: ReadonlySet<string>,
+): boolean {
   return (
-    isBoardImageId(block.imageId) &&
+    allowed.has(block.imageId) &&
     Number.isInteger(block.row) &&
     Number.isInteger(block.col) &&
     originFits(size, block.row, block.col)
@@ -420,13 +425,15 @@ function blocksConflict(
 export function keptImageBlocks(
   size: number,
   blocks: readonly ImageBlock[],
+  imageIds: readonly BoardImageId[] = BOARD_IMAGE_IDS,
 ): ImageBlock[] | null {
   if (blocks.length === 0) return null
   if (!Number.isInteger(size) || blocks.length > maxImageBlocks(size)) return null
+  const allowed = allowedImageIds(imageIds)
   const copies: ImageBlock[] = []
   const seen = new Set<BoardImageId>()
   for (const block of blocks) {
-    if (!blockFits(size, block) || seen.has(block.imageId)) return null
+    if (!blockFits(size, block, allowed) || seen.has(block.imageId)) return null
     seen.add(block.imageId)
     copies.push(copyBlock(block))
   }
@@ -443,14 +450,16 @@ export function retainImageBlocks(
   blocks: readonly ImageBlock[],
   size: number,
   count: number,
+  imageIds: readonly BoardImageId[] = BOARD_IMAGE_IDS,
 ): ImageBlock[] {
   if (count <= 0) return []
+  const allowed = allowedImageIds(imageIds)
   const separateEdges = count >= 2
   const kept: ImageBlock[] = []
   const seen = new Set<BoardImageId>()
   for (const block of blocks) {
     if (kept.length >= count) break
-    if (!blockFits(size, block) || seen.has(block.imageId)) continue
+    if (!blockFits(size, block, allowed) || seen.has(block.imageId)) continue
     if (kept.length >= 1 && blocksConflict(size, [...kept, block], separateEdges)) continue
     seen.add(block.imageId)
     kept.push(copyBlock(block))
@@ -499,7 +508,7 @@ function adaptedImageBlocks(
   // list still places only distinct drawings, fewer than `count` when needed.
   const target = Math.min(count, catalog.length)
   if (target === 0) return null
-  const retained = retainImageBlocks(existing, size, target)
+  const retained = retainImageBlocks(existing, size, target, catalog)
   if (retained.length === 0) return placeImageBlocks(size, target, rng, catalog)
 
   const separateEdges = target >= 2
@@ -547,7 +556,7 @@ export function resolveImageBlocks(
   const existing = options?.existing ?? []
   const imageIds = options?.imageIds ?? BOARD_IMAGE_IDS
   if (policy === 'keep' && existing.length > 0) {
-    const kept = keptImageBlocks(size, existing)
+    const kept = keptImageBlocks(size, existing, imageIds)
     if (kept) return kept
     return adaptedImageBlocks(size, count, rng, existing, imageIds)
   }

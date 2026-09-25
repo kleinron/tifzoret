@@ -1,12 +1,26 @@
+import { HolidayPacks, type HolidayPacksProps } from './HolidayPacks.tsx'
+
 export type WordBankProps = {
   words: readonly string[]
   found: ReadonlySet<string>
+  holidayOpen: boolean
+  holidayPack: HolidayPacksProps['activeId']
+  onToggleHoliday: () => void
+  onSelectHoliday: HolidayPacksProps['onSelect']
 }
 
 export function WordBank(props: WordBankProps) {
   return (
     <aside className="panel word-bank" aria-label="מחסן מילים">
-      <h2>מחסן מילים</h2>
+      <div className="word-bank-header">
+        <h2>מחסן מילים</h2>
+        <HolidayPacks
+          open={props.holidayOpen}
+          activeId={props.holidayPack}
+          onToggle={props.onToggleHoliday}
+          onSelect={props.onSelectHoliday}
+        />
+      </div>
       {props.words.length === 0 ? (
         <p className="hint">מילות המחסן יופיעו כאן אחרי יצירת התפזורת.</p>
       ) : (

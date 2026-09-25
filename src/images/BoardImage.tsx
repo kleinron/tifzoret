@@ -1,5 +1,19 @@
 import type { ReactNode } from 'react'
 import type { BoardImageId } from './catalog.ts'
+import {
+  CandleIcon,
+  CrownIcon,
+  DreidelIcon,
+  GeltIcon,
+  GraggerIcon,
+  HamantaschIcon,
+  HanukkiahIcon,
+  MaskIcon,
+  MegillahIcon,
+  MishloachIcon,
+  OilJugIcon,
+  SufganiyahIcon,
+} from './holidayIcons.tsx'
 
 function Icon({
   backdrop,
@@ -331,6 +345,30 @@ export function BoardImage({ id }: { id: BoardImageId }) {
       return <ButterflyIcon />
     case 'boat':
       return <BoatIcon />
+    case 'hanukkiah':
+      return <HanukkiahIcon />
+    case 'dreidel':
+      return <DreidelIcon />
+    case 'oil-jug':
+      return <OilJugIcon />
+    case 'sufganiyah':
+      return <SufganiyahIcon />
+    case 'candle':
+      return <CandleIcon />
+    case 'gelt':
+      return <GeltIcon />
+    case 'megillah':
+      return <MegillahIcon />
+    case 'gragger':
+      return <GraggerIcon />
+    case 'hamantasch':
+      return <HamantaschIcon />
+    case 'mask':
+      return <MaskIcon />
+    case 'crown':
+      return <CrownIcon />
+    case 'mishloach':
+      return <MishloachIcon />
     default: {
       const unknown: never = id
       throw new Error(`Unknown image ${String(unknown)}`)

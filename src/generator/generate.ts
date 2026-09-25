@@ -1,4 +1,5 @@
 import { KID_WORDS } from '../data/kidWords.ts'
+import { BOARD_IMAGE_IDS, type BoardImageId } from '../images/catalog.ts'
 import { directionsById, type Direction, type DirectionId } from './directions.ts'
 import {
   filterBankWords,
@@ -63,6 +64,12 @@ export type GenerateRequest = {
    * `adapt` keeps what it can and fills up to `imageCount`.
    */
   pinnedImageBlocks?: readonly ImageBlock[]
+  /**
+   * Drawings that may be placed. Omitted means the default catalog.
+   * A holiday pack passes its own set so a catalog swap cannot keep the
+   * previous pictures.
+   */
+  imageIds?: readonly BoardImageId[]
   seed?: number
   rng?: () => number
   maxPlacementAttempts?: number
@@ -356,8 +363,9 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
 
   const policy: ImagePolicy = request.imagePolicy ?? 'roll'
   const pinned = request.pinnedImageBlocks ?? []
+  const imageIds = request.imageIds ?? BOARD_IMAGE_IDS
   // A legal keep is fixed for every attempt and does not draw from `rng`.
-  const kept = policy === 'keep' ? keptImageBlocks(size, pinned) : null
+  const kept = policy === 'keep' ? keptImageBlocks(size, pinned, imageIds) : null
   const imageCount = kept ? kept.length : (request.imageCount ?? 0)
   const fallbackPolicy: ImagePolicy =
     policy === 'keep' ? (pinned.length > 0 ? 'adapt' : 'roll') : policy
@@ -461,6 +469,7 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
       resolveImageBlocks(size, imageCount, rng, {
         policy: fallbackPolicy,
         existing: pinned,
+        imageIds,
       })
     if (!blocks) {
       return fail(

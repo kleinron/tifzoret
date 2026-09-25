@@ -416,4 +416,26 @@ describe('placeImageBlocks', () => {
       assertPacked(blocks!, 12, 2)
     }
   })
+
+  it('replaces drawings that are not in the active catalog', () => {
+    const existing: ImageBlock[] = [{ imageId: 'cat', row: 0, col: 0 }]
+    const holiday = ['dreidel', 'hanukkiah'] as const
+    expect(keptImageBlocks(12, existing, holiday)).toBeNull()
+    for (let seed = 1; seed <= 8; seed++) {
+      const blocks = resolveImageBlocks(12, 1, mulberry32(seed), {
+        policy: 'adapt',
+        existing,
+        imageIds: holiday,
+      })
+      expect(blocks, `seed ${seed}`).toHaveLength(1)
+      expect(holiday).toContain(blocks![0]!.imageId)
+      expect(blocks![0]!.imageId).not.toBe('cat')
+    }
+    const kept = resolveImageBlocks(12, 1, mulberry32(3), {
+      policy: 'keep',
+      existing: [{ imageId: 'dreidel', row: 1, col: 2 }],
+      imageIds: holiday,
+    })
+    expect(kept).toEqual([{ imageId: 'dreidel', row: 1, col: 2 }])
+  })
 })
