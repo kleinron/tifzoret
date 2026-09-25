@@ -1,11 +1,17 @@
 import { useEffect, useId, useRef } from 'react'
 import { BoardImage } from '../images/BoardImage.tsx'
-import { BOARD_IMAGE_IDS, boardImageLabel } from '../images/catalog.ts'
+import { BOARD_IMAGE_IDS, boardImageLabel, type BoardImageId } from '../images/catalog.ts'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-export function ImageCatalogModal({ onClose }: { onClose: () => void }) {
+export function ImageCatalogModal({
+  onClose,
+  imageIds = BOARD_IMAGE_IDS,
+}: {
+  onClose: () => void
+  imageIds?: readonly BoardImageId[]
+}) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
 
@@ -77,7 +83,7 @@ export function ImageCatalogModal({ onClose }: { onClose: () => void }) {
           </button>
         </header>
         <ul className="catalog-grid">
-          {BOARD_IMAGE_IDS.map((id) => (
+          {imageIds.map((id) => (
             <li key={id} className="catalog-tile">
               <div className="catalog-art">
                 <BoardImage id={id} />

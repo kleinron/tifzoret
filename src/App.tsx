@@ -36,6 +36,12 @@ import {
   MIN_GRID_SIZE,
   planWordIntake,
 } from './generator/wordLimits.ts'
+import {
+  applyHolidayPack,
+  DEFAULT_NO_FINALS,
+  holidayPackById,
+  type HolidayPackId,
+} from './data/holidayPacks.ts'
 import { catalogShortcutOpens, shortcutFocusFromTarget } from './images/catalogShortcut.ts'
 import { payloadFromSearch, type SharePayload } from './share/codec.ts'
 
@@ -93,7 +99,11 @@ export default function App() {
   const [randomAge10, setRandomAge10] = useState(
     () => boot?.settings?.randomAge10 ?? false,
   )
-  const [noFinals, setNoFinals] = useState(() => boot?.settings?.noFinals ?? false)
+  const [noFinals, setNoFinals] = useState(
+    () => boot?.settings?.noFinals ?? DEFAULT_NO_FINALS,
+  )
+  const [holidayPack, setHolidayPack] = useState<HolidayPackId>('regular')
+  const [holidayOpen, setHolidayOpen] = useState(false)
   const [gridSize, setGridSize] = useState(() =>
     boot?.settings ? clampGridSize(boot.settings.gridSize) : 12,
   )
@@ -117,6 +127,7 @@ export default function App() {
   const [foundWords, setFoundWords] = useState<Set<string>>(new Set())
   const [foundCells, setFoundCells] = useState<Map<string, string>>(new Map())
   const [catalogOpen, setCatalogOpen] = useState(false)
+  const activeImageIds = holidayPackById(holidayPack).imageIds
   const closeCatalog = useCallback(() => setCatalogOpen(false), [])
   const actionRef = useRef<PuzzleRefresh>('settings')
   const bootedRef = useRef(false)
@@ -132,6 +143,7 @@ export default function App() {
     bank,
     puzzleWords,
     imageBlocks,
+    imageIds: activeImageIds,
   })
   liveRef.current = {
     enabledDirs,
@@ -142,6 +154,7 @@ export default function App() {
     bank,
     puzzleWords,
     imageBlocks,
+    imageIds: activeImageIds,
   }
 
   const toggleDirection = (id: DirectionId) => {
@@ -203,6 +216,13 @@ export default function App() {
     setBank((prev) => prev.filter((w) => w !== word))
   }
 
+  const selectHoliday = (id: HolidayPackId) => {
+    const next = applyHolidayPack({ bank }, id)
+    setHolidayPack(next.packId)
+    setBank(next.bank)
+    setNoFinals(next.noFinals)
+  }
+
   const requestGenerate = (action: PuzzleRefresh) => {
     actionRef.current = action
     setManualNonce((nonce) => nonce + 1)
@@ -221,6 +241,7 @@ export default function App() {
       imageCount: live.imageCount,
       imagePolicy,
       pinnedImageBlocks: imagePolicy === 'roll' ? undefined : live.imageBlocks,
+      imageIds: live.imageIds,
     }
     const id = ++genIdRef.current
     if (genTimerRef.current !== null) window.clearTimeout(genTimerRef.current)
@@ -303,6 +324,7 @@ export default function App() {
     bank,
     randomAge10,
     noFinals,
+    holidayPack,
   })
 
   useEffect(() => {
@@ -422,9 +444,18 @@ export default function App() {
           )}
         </main>
 
-        <WordBank words={puzzleWords} found={foundWords} />
+        <WordBank
+          words={puzzleWords}
+          found={foundWords}
+          holidayOpen={holidayOpen}
+          holidayPack={holidayPack}
+          onToggleHoliday={() => setHolidayOpen((open) => !open)}
+          onSelectHoliday={selectHoliday}
+        />
       </div>
-      {catalogOpen ? <ImageCatalogModal onClose={closeCatalog} /> : null}
+      {catalogOpen ? (
+        <ImageCatalogModal onClose={closeCatalog} imageIds={activeImageIds} />
+      ) : null}
     </div>
   )
 }

@@ -59,6 +59,8 @@ export function puzzleSettingsKey(input: {
   bank: readonly string[]
   randomAge10: boolean
   noFinals: boolean
+  /** Active picture catalog. A pack swap rebuilds even when words and checkboxes do not. */
+  holidayPack?: string
 }): string {
   return [
     input.directions.slice().sort().join(','),
@@ -67,5 +69,6 @@ export function puzzleSettingsKey(input: {
     input.bank.join('\u0001'),
     input.randomAge10 ? '1' : '0',
     input.noFinals ? '1' : '0',
+    input.holidayPack ?? 'regular',
   ].join('\u0002')
 }

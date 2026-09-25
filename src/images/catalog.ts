@@ -18,9 +18,33 @@ export const BOARD_IMAGE_IDS = [
   'boat',
 ] as const
 
-export type BoardImageId = (typeof BOARD_IMAGE_IDS)[number]
+export type DefaultBoardImageId = (typeof BOARD_IMAGE_IDS)[number]
 
-export const BOARD_IMAGE_LABELS: Record<BoardImageId, string> = {
+/** Hanukkah drawings. A holiday pack replaces the default catalog with these. */
+export const HANUKKAH_IMAGE_IDS = [
+  'hanukkiah',
+  'dreidel',
+  'oil-jug',
+  'sufganiyah',
+  'candle',
+  'gelt',
+] as const
+
+/** Purim drawings. Parallel to the default catalog, not mixed into it. */
+export const PURIM_IMAGE_IDS = [
+  'megillah',
+  'gragger',
+  'hamantasch',
+  'mask',
+  'crown',
+  'mishloach',
+] as const
+
+export type HanukkahImageId = (typeof HANUKKAH_IMAGE_IDS)[number]
+export type PurimImageId = (typeof PURIM_IMAGE_IDS)[number]
+export type BoardImageId = DefaultBoardImageId | HanukkahImageId | PurimImageId
+
+export const BOARD_IMAGE_LABELS: Record<DefaultBoardImageId, string> = {
   cat: 'חתול',
   ball: 'כדור',
   sun: 'שמש',
@@ -39,6 +63,30 @@ export const BOARD_IMAGE_LABELS: Record<BoardImageId, string> = {
   boat: 'סירה',
 }
 
+export const HANUKKAH_IMAGE_LABELS: Record<HanukkahImageId, string> = {
+  hanukkiah: 'חנוכייה',
+  dreidel: 'סביבון',
+  'oil-jug': 'פך שמן',
+  sufganiyah: 'סופגנייה',
+  candle: 'נר',
+  gelt: 'מטבעות חנוכה',
+}
+
+export const PURIM_IMAGE_LABELS: Record<PurimImageId, string> = {
+  megillah: 'מגילה',
+  gragger: 'רעשן',
+  hamantasch: 'אוזן המן',
+  mask: 'מסכה',
+  crown: 'כתר אסתר',
+  mishloach: 'משלוח מנות',
+}
+
+const IMAGE_LABELS: Record<BoardImageId, string> = {
+  ...BOARD_IMAGE_LABELS,
+  ...HANUKKAH_IMAGE_LABELS,
+  ...PURIM_IMAGE_LABELS,
+}
+
 export function boardImageLabel(id: BoardImageId): string {
-  return BOARD_IMAGE_LABELS[id]
+  return IMAGE_LABELS[id]
 }
