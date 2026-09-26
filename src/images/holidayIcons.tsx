@@ -121,10 +121,8 @@ export function SufganiyahIcon() {
         <circle cx="20.5" cy="32" r="1.15" />
         <circle cx="43" cy="32" r="1.1" />
       </g>
-      <path
-        d="M29.4 33.2c.7-1.5 2.1-2.1 3.3-1.1.9 1.5.3 3.2-1.2 3.6-1.7.3-2.8-.9-2.1-2.5z"
-        fill="#c43b3b"
-      />
+      <ellipse cx="33" cy="35.2" rx="3.3" ry="2.3" fill="#c43b3b" />
+      <ellipse cx="32.1" cy="34.4" rx="1.4" ry="0.85" fill="#e24b4b" />
     </Icon>
   )
 }
