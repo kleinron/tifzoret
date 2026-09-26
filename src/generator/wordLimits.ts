@@ -1,4 +1,4 @@
-import { MAX_WORD_LENGTH, MIN_WORD_LENGTH, parseWordList } from './hebrew.ts'
+import { MAX_WORD_LENGTH, parseWordList } from './hebrew.ts'
 
 export { MAX_WORD_LENGTH }
 
@@ -10,13 +10,6 @@ export const MIN_GRID_SIZE = 8
 
 /** Board side when the visitor has not chosen one and no share link set it. */
 export const DEFAULT_GRID_SIZE = 12
-
-/**
- * Cells added to each side of a square that could hold the letters.
- * With this margin, חנוכה merged onto the default bank is a 12×12 board,
- * which generated reliably in a 24-seed sweep.
- */
-const GRID_SIDE_MARGIN = 2
 
 export type WordIntakeResult = {
   accepted: string[]
@@ -88,31 +81,6 @@ export function suggestedGridSizeForWords(
     }
   }
   return needed
-}
-
-function clampGridSize(value: number): number {
-  return Math.min(MAX_GRID_SIZE, Math.max(MIN_GRID_SIZE, Math.round(value)))
-}
-
-/**
- * Board side for the words a puzzle will try to place.
- * Two-letter words are ignored, same as the generator. The side is a
- * square of those letters plus {@link GRID_SIDE_MARGIN}, and at least
- * the longest word, then clamped to the size slider.
- */
-export function gridSizeForWords(words: readonly string[]): number {
-  let letters = 0
-  let longest = 0
-  let count = 0
-  for (const word of words) {
-    if (word.length < MIN_WORD_LENGTH || word.length > MAX_WORD_LENGTH) continue
-    letters += word.length
-    if (word.length > longest) longest = word.length
-    count += 1
-  }
-  if (count === 0) return DEFAULT_GRID_SIZE
-  const side = Math.ceil(Math.sqrt(letters) + GRID_SIDE_MARGIN)
-  return clampGridSize(Math.max(longest, side))
 }
 
 /**
@@ -217,10 +185,28 @@ export function capBankWords(
   }
 }
 
+/**
+ * How many words a board of this side is built to hold.
+ * Automatic fill uses the same target and stops once the bank reaches it.
+ */
+export function gridWordTarget(size: number): number {
+  return Math.max(6, Math.round(size * 1.05))
+}
+
+/**
+ * Smallest slider size whose {@link gridWordTarget} covers `wordCount`.
+ * A count past the 20×20 target stays at {@link MAX_GRID_SIZE}.
+ */
+export function gridSizeForWordCount(wordCount: number): number {
+  for (let size = MIN_GRID_SIZE; size <= MAX_GRID_SIZE; size++) {
+    if (gridWordTarget(size) >= wordCount) return size
+  }
+  return MAX_GRID_SIZE
+}
+
 /** How many age-10 extras to request, never crossing the bank cap. */
 export function extraFillCount(size: number, existingCount: number): number {
-  const densityTarget = Math.max(6, Math.round(size * 1.05))
-  const desired = Math.max(0, densityTarget - existingCount)
+  const desired = Math.max(0, gridWordTarget(size) - existingCount)
   const room = Math.max(0, MAX_BANK_WORDS - existingCount)
   return Math.min(desired, room)
 }

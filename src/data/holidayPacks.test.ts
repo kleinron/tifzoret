@@ -9,9 +9,9 @@ import { DIRECTIONS } from '../generator/directions.ts'
 import { generatePuzzle, type GenerateSuccess } from '../generator/generate.ts'
 import { filterBankWords, hasFinalLetter } from '../generator/hebrew.ts'
 import { puzzleSettingsKey } from '../generator/puzzleRefresh.ts'
-import { pictureBlockSize } from '../generator/imageBlocks.ts'
+import { clampImageCount, pictureBlockSize } from '../generator/imageBlocks.ts'
 import {
-  gridSizeForWords,
+  gridSizeForWordCount,
   MAX_BANK_WORDS,
   MAX_GRID_SIZE,
   MIN_GRID_SIZE,
@@ -334,44 +334,40 @@ describe('holiday pack controls', () => {
 })
 
 describe('holiday pack board size', () => {
-  it('derives a slider-sized board from the words the pack will place', () => {
-    expect(gridSizeForWords(HANUKKAH_WORDS)).toBe(10)
-    expect(gridSizeForWords(PURIM_WORDS)).toBe(10)
-    expect(pictureBlockSize(10)).toBe(3)
-
+  it('sizes from the merged bank with the existing word target', () => {
     const hanukkah = applyHolidayPack({ bank: DEFAULT_BANK }, 'hanukkah')
     const purim = applyHolidayPack({ bank: DEFAULT_BANK }, 'purim')
-    expect(gridSizeForWords(hanukkah.bank)).toBe(12)
-    expect(gridSizeForWords(purim.bank)).toBe(12)
-    expect(pictureBlockSize(12)).toBe(4)
-
-    const both = applyHolidayPack({ bank: hanukkah.bank }, 'purim')
-    expect(gridSizeForWords(both.bank)).toBe(14)
-    expect(gridSizeForWords(both.bank)).toBeGreaterThanOrEqual(MIN_GRID_SIZE)
-    expect(gridSizeForWords(both.bank)).toBeLessThanOrEqual(MAX_GRID_SIZE)
+    expect(hanukkah.bank).toHaveLength(HANUKKAH_WORDS.length + DEFAULT_BANK.length)
+    expect(purim.bank).toHaveLength(PURIM_WORDS.length + DEFAULT_BANK.length)
+    expect(gridSizeForWordCount(hanukkah.bank.length)).toBe(MAX_GRID_SIZE)
+    expect(gridSizeForWordCount(purim.bank.length)).toBe(MAX_GRID_SIZE)
+    expect(gridSizeForWordCount(HANUKKAH_WORDS.length)).toBe(13)
+    expect(gridSizeForWordCount(PURIM_WORDS.length)).toBe(10)
+    expect(pictureBlockSize(10)).toBe(3)
+    expect(pictureBlockSize(13)).toBe(4)
   })
 
-  it('bumps a small board when a holiday chip is selected, and that board generates', () => {
+  it('raises a small board for חנוכה and פורים, and that board generates', () => {
     for (const id of ['hanukkah', 'purim'] as const) {
       const applied = applyHolidayPack({ bank: DEFAULT_BANK }, id)
-      const sized = gridSizeAfterHolidayPack({
+      const nextSize = gridSizeAfterHolidayPack({
         packId: id,
         bank: applied.bank,
         currentGrid: MIN_GRID_SIZE,
-        savedGrid: null,
       })
-      expect(sized.savedGrid).toBe(MIN_GRID_SIZE)
-      expect(sized.gridSize).toBe(12)
-      expect(pictureBlockSize(sized.gridSize)).toBe(4)
-      for (const seed of [1, 2, 3, 4, 5]) {
+      expect(nextSize).toBe(MAX_GRID_SIZE)
+      expect(nextSize).toBeGreaterThan(MIN_GRID_SIZE)
+      expect(clampImageCount(1, nextSize)).toBe(1)
+      expect(pictureBlockSize(nextSize)).toBe(4)
+      for (const seed of [1, 2, 3]) {
         const puzzle = success(
           generatePuzzle({
-            size: sized.gridSize,
+            size: nextSize,
             userWords: applied.bank,
             directions: ['rtl', 'ttb', 'trbl'],
             noFinalLetters: applied.noFinals,
             randomAge10Fill: false,
-            imageCount: 1,
+            imageCount: clampImageCount(1, nextSize),
             imageIds: applied.imageIds,
             seed,
           }),
@@ -382,93 +378,56 @@ describe('holiday pack board size', () => {
     }
   })
 
-  it('grows again for a second pack and remembers the board from before the holiday', () => {
-    const hanukkah = applyHolidayPack({ bank: DEFAULT_BANK }, 'hanukkah')
-    const afterHanukkah = gridSizeAfterHolidayPack({
-      packId: 'hanukkah',
-      bank: hanukkah.bank,
-      currentGrid: MIN_GRID_SIZE,
-      savedGrid: null,
-    })
-    const purim = applyHolidayPack({ bank: hanukkah.bank }, 'purim')
-    const afterPurim = gridSizeAfterHolidayPack({
-      packId: 'purim',
-      bank: purim.bank,
-      currentGrid: afterHanukkah.gridSize,
-      savedGrid: afterHanukkah.savedGrid,
-    })
-    expect(afterPurim.savedGrid).toBe(MIN_GRID_SIZE)
-    expect(afterPurim.gridSize).toBe(14)
-    const puzzle = success(
-      generatePuzzle({
-        size: afterPurim.gridSize,
-        userWords: purim.bank,
-        directions: ['rtl', 'ttb', 'trbl'],
-        noFinalLetters: purim.noFinals,
-        randomAge10Fill: false,
-        imageCount: 1,
-        imageIds: purim.imageIds,
-        seed: 2,
+  it('does not shrink a board that is already large enough', () => {
+    const applied = applyHolidayPack({ bank: [] }, 'purim')
+    expect(gridSizeForWordCount(applied.bank.length)).toBe(10)
+    expect(
+      gridSizeAfterHolidayPack({
+        packId: 'purim',
+        bank: applied.bank,
+        currentGrid: 16,
       }),
-    )
-    expect(puzzle.words.length).toBeGreaterThan(20)
+    ).toBe(16)
+    expect(
+      gridSizeAfterHolidayPack({
+        packId: 'purim',
+        bank: applied.bank,
+        currentGrid: MIN_GRID_SIZE,
+      }),
+    ).toBe(10)
   })
 
-  it('restores a larger pre-pack board, and keeps a board that still fits leftover words', () => {
-    const hanukkah = applyHolidayPack({ bank: DEFAULT_BANK }, 'hanukkah')
-    const fromLarge = gridSizeAfterHolidayPack({
-      packId: 'hanukkah',
-      bank: hanukkah.bank,
-      currentGrid: 16,
-      savedGrid: null,
-    })
-    expect(fromLarge.gridSize).toBe(12)
-    expect(fromLarge.savedGrid).toBe(16)
-
-    const regular = applyHolidayPack({ bank: hanukkah.bank }, 'regular')
-    const restored = gridSizeAfterHolidayPack({
-      packId: 'regular',
-      bank: regular.bank,
-      currentGrid: fromLarge.gridSize,
-      savedGrid: fromLarge.savedGrid,
-    })
-    expect(regular.bank).toEqual(hanukkah.bank)
-    expect(restored.savedGrid).toBeNull()
-    expect(restored.gridSize).toBe(16)
-
-    const fromSmall = gridSizeAfterHolidayPack({
-      packId: 'hanukkah',
-      bank: hanukkah.bank,
-      currentGrid: MIN_GRID_SIZE,
-      savedGrid: null,
-    })
-    const back = gridSizeAfterHolidayPack({
-      packId: 'regular',
-      bank: hanukkah.bank,
-      currentGrid: fromSmall.gridSize,
-      savedGrid: fromSmall.savedGrid,
-    })
-    expect(back.gridSize).toBe(fromSmall.gridSize)
-    success(
-      generatePuzzle({
-        size: back.gridSize,
-        userWords: hanukkah.bank,
-        directions: ['rtl', 'ttb', 'trbl'],
-        noFinalLetters: false,
-        randomAge10Fill: false,
-        imageCount: 1,
-        imageIds: hanukkah.imageIds,
-        seed: 3,
+  it('still grows to the הגדל לוח size when a bank word is longer than the board', () => {
+    const longWord = 'אבגדהוזחטיכלמנ'
+    expect(longWord).toHaveLength(14)
+    const applied = applyHolidayPack({ bank: [longWord] }, 'purim')
+    expect(applied.bank).toContain(longWord)
+    expect(
+      gridSizeAfterHolidayPack({
+        packId: 'purim',
+        bank: applied.bank,
+        currentGrid: MIN_GRID_SIZE,
       }),
-    )
+    ).toBe(14)
+  })
 
-    const alreadyRegular = gridSizeAfterHolidayPack({
-      packId: 'regular',
-      bank: DEFAULT_BANK,
-      currentGrid: 9,
-      savedGrid: null,
-    })
-    expect(alreadyRegular.gridSize).toBe(9)
-    expect(alreadyRegular.savedGrid).toBeNull()
+  it('leaves the board size unchanged for רגיל', () => {
+    const hanukkah = applyHolidayPack({ bank: DEFAULT_BANK }, 'hanukkah')
+    const regular = applyHolidayPack({ bank: hanukkah.bank }, 'regular')
+    expect(regular.bank).toEqual(hanukkah.bank)
+    expect(
+      gridSizeAfterHolidayPack({
+        packId: 'regular',
+        bank: regular.bank,
+        currentGrid: MIN_GRID_SIZE,
+      }),
+    ).toBe(MIN_GRID_SIZE)
+    expect(
+      gridSizeAfterHolidayPack({
+        packId: 'regular',
+        bank: regular.bank,
+        currentGrid: 16,
+      }),
+    ).toBe(16)
   })
 })

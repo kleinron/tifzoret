@@ -134,8 +134,6 @@ export default function App() {
   const closeCatalog = useCallback(() => setCatalogOpen(false), [])
   const actionRef = useRef<PuzzleRefresh>('settings')
   const bootedRef = useRef(false)
-  /** Board side in use before the current holiday visit. Null on «רגיל». */
-  const gridBeforeHolidayRef = useRef<number | null>(null)
   const genIdRef = useRef(0)
   const genTimerRef = useRef<number | null>(null)
   const [manualNonce, setManualNonce] = useState(0)
@@ -223,17 +221,15 @@ export default function App() {
 
   const selectHoliday = (id: HolidayPackId) => {
     const next = applyHolidayPack({ bank }, id)
-    const sized = gridSizeAfterHolidayPack({
-      packId: id,
-      bank: next.bank,
-      currentGrid: gridSize,
-      savedGrid: gridBeforeHolidayRef.current,
-    })
-    gridBeforeHolidayRef.current = sized.savedGrid
     setHolidayPack(next.packId)
     setBank(next.bank)
     setNoFinals(next.noFinals)
-    applyGridSize(sized.gridSize)
+    const nextSize = gridSizeAfterHolidayPack({
+      packId: id,
+      bank: next.bank,
+      currentGrid: gridSize,
+    })
+    if (nextSize !== gridSize) applyGridSize(nextSize)
   }
 
   const requestGenerate = (action: PuzzleRefresh) => {

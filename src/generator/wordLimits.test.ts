@@ -19,7 +19,8 @@ import {
   messageTooLong,
   messageTooLongForGrid,
   planWordIntake,
-  gridSizeForWords,
+  gridSizeForWordCount,
+  gridWordTarget,
   suggestedGridSizeForWords,
 } from './wordLimits.ts'
 
@@ -74,17 +75,21 @@ describe('word length cap (16)', () => {
   })
 })
 
-describe('board size for a word list', () => {
-  it('uses the app default when nothing can be placed', () => {
-    expect(gridSizeForWords([])).toBe(12)
-    expect(gridSizeForWords(['נס', 'פה'])).toBe(12)
+describe('board size for a word count', () => {
+  it('uses the same word target as automatic fill', () => {
+    expect(gridWordTarget(12)).toBe(Math.max(6, Math.round(12 * 1.05)))
+    expect(extraFillCount(12, 1)).toBe(Math.max(0, gridWordTarget(12) - 1))
+    expect(gridSizeForWordCount(gridWordTarget(12))).toBe(12)
   })
 
-  it('fits the letters with a two-cell margin, and never past the slider', () => {
-    expect(gridSizeForWords(['שמש'])).toBe(8)
-    expect(gridSizeForWords([LETTER_14])).toBe(14)
-    const packed = Array.from({ length: 40 }, () => 'אבגדהוזח')
-    expect(gridSizeForWords(packed)).toBe(20)
+  it('picks the smallest slider size that covers the count, and stops at 20', () => {
+    expect(gridSizeForWordCount(0)).toBe(8)
+    expect(gridSizeForWordCount(8)).toBe(8)
+    expect(gridSizeForWordCount(11)).toBe(10)
+    expect(gridSizeForWordCount(14)).toBe(13)
+    expect(gridSizeForWordCount(21)).toBe(20)
+    expect(gridSizeForWordCount(50)).toBe(20)
+    expect(gridWordTarget(20)).toBeLessThan(50)
   })
 })
 
