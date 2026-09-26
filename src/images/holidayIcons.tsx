@@ -79,10 +79,10 @@ export function OilJugIcon() {
   return (
     <Icon backdrop="#fff1e0">
       <path
-        d="M42 26c9 1 12 9 8 15"
+        d="M32 26c20-2 24 14 2 22"
         fill="none"
         stroke="#c46a4a"
-        strokeWidth="3.4"
+        strokeWidth="3.6"
         strokeLinecap="round"
       />
       <ellipse cx="30" cy="40" rx="14" ry="15" fill="#d98978" />
@@ -91,13 +91,13 @@ export function OilJugIcon() {
       <ellipse cx="30" cy="20" rx="7" ry="3.2" fill="#e0a83a" />
       <ellipse cx="30" cy="20" rx="3.4" ry="1.5" fill="#f6c445" />
       <path
-        d="M46 14c3-4 8-3 8 1"
+        d="M27 18.4c.4-5.4 5.6-5.4 6 0"
         fill="none"
         stroke="#f0b429"
         strokeWidth="2.2"
         strokeLinecap="round"
       />
-      <circle cx="52" cy="18" r="2.6" fill="#f6c445" />
+      <circle cx="30" cy="15.6" r="2.4" fill="#f6c445" />
     </Icon>
   )
 }
