@@ -620,8 +620,16 @@ button.outline {
 }
 
 .banner.error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
   background: #fde8e4;
   border: 1px solid #e2a090;
+}
+
+.banner.error p {
+  margin: 0;
 }
 
 .banner.notes {

@@ -4,6 +4,7 @@ import { DEFAULT_DIRECTION_IDS, DIRECTIONS, directionArrowRotation } from './dir
 import {
   generatePuzzle,
   pickDiverseWords,
+  PLACEMENT_FAILED_HE,
   type GenerateSuccess,
 } from './generate.ts'
 import {
@@ -481,8 +482,7 @@ describe('generatePuzzle uniqueness', () => {
   })
 
   it('asks to loosen the puzzle when placement cannot finish', () => {
-    const expected =
-      'לא הצלחנו לייצר את התפזורת הרצויה. נסו רשת גדולה יותר, פחות מילים, פחות כיוונים, או פחות תמונות.'
+    const expected = PLACEMENT_FAILED_HE
     for (const imageCount of [0, 1]) {
       const result = generatePuzzle({
         size: 10,

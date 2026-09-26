@@ -10,6 +10,8 @@ import {
   editorValidation,
   AGE10_FILL_LABEL,
   age10FillHint,
+  ENLARGE_GRID_LABEL,
+  enlargedGridSizeForWords,
   extraFillCount,
   growBoardCtaLabel,
   looksLikeWordList,
@@ -90,6 +92,22 @@ describe('board size for a word count', () => {
     expect(gridSizeForWordCount(21)).toBe(20)
     expect(gridSizeForWordCount(50)).toBe(20)
     expect(gridWordTarget(20)).toBeLessThan(50)
+  })
+})
+
+describe('larger grid after a failed build', () => {
+  it('reuses the word-count target and the הגדל לוח length, clamped to 20', () => {
+    expect(ENLARGE_GRID_LABEL).toBe('הגדל רשת')
+    const nine = manyWords(9, 3)
+    expect(enlargedGridSizeForWords(nine, 8)).toBe(gridSizeForWordCount(9))
+    expect(enlargedGridSizeForWords(nine, 8)).toBe(9)
+    expect(enlargedGridSizeForWords(manyWords(21), 8)).toBe(20)
+    expect(enlargedGridSizeForWords(manyWords(50), 20)).toBeNull()
+    expect(enlargedGridSizeForWords(manyWords(8), 12)).toBeNull()
+
+    expect(enlargedGridSizeForWords([LETTER_16], 8)).toBe(16)
+    expect(enlargedGridSizeForWords([...manyWords(9, 3), LETTER_14], 8)).toBe(14)
+    expect(enlargedGridSizeForWords([LETTER_14], 14)).toBeNull()
   })
 })
 
