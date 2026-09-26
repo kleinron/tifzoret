@@ -1,4 +1,4 @@
-import { MAX_WORD_LENGTH, parseWordList } from './hebrew.ts'
+import { MAX_WORD_LENGTH, MIN_WORD_LENGTH, parseWordList } from './hebrew.ts'
 
 export { MAX_WORD_LENGTH }
 
@@ -7,6 +7,16 @@ export const MAX_BANK_WORDS = 50
 
 export const MAX_GRID_SIZE = 20
 export const MIN_GRID_SIZE = 8
+
+/** Board side when the visitor has not chosen one and no share link set it. */
+export const DEFAULT_GRID_SIZE = 12
+
+/**
+ * Cells added to each side of a square that could hold the letters.
+ * With this margin, חנוכה merged onto the default bank is a 12×12 board,
+ * which generated reliably in a 24-seed sweep.
+ */
+const GRID_SIDE_MARGIN = 2
 
 export type WordIntakeResult = {
   accepted: string[]
@@ -78,6 +88,31 @@ export function suggestedGridSizeForWords(
     }
   }
   return needed
+}
+
+function clampGridSize(value: number): number {
+  return Math.min(MAX_GRID_SIZE, Math.max(MIN_GRID_SIZE, Math.round(value)))
+}
+
+/**
+ * Board side for the words a puzzle will try to place.
+ * Two-letter words are ignored, same as the generator. The side is a
+ * square of those letters plus {@link GRID_SIDE_MARGIN}, and at least
+ * the longest word, then clamped to the size slider.
+ */
+export function gridSizeForWords(words: readonly string[]): number {
+  let letters = 0
+  let longest = 0
+  let count = 0
+  for (const word of words) {
+    if (word.length < MIN_WORD_LENGTH || word.length > MAX_WORD_LENGTH) continue
+    letters += word.length
+    if (word.length > longest) longest = word.length
+    count += 1
+  }
+  if (count === 0) return DEFAULT_GRID_SIZE
+  const side = Math.ceil(Math.sqrt(letters) + GRID_SIDE_MARGIN)
+  return clampGridSize(Math.max(longest, side))
 }
 
 /**

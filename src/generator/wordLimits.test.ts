@@ -19,6 +19,7 @@ import {
   messageTooLong,
   messageTooLongForGrid,
   planWordIntake,
+  gridSizeForWords,
   suggestedGridSizeForWords,
 } from './wordLimits.ts'
 
@@ -70,6 +71,20 @@ describe('word length cap (16)', () => {
     expect(result.skippedTooLong).toContain(LETTER_14)
     expect(result.skippedMaxLength).not.toContain(LETTER_14)
     expect(result.kept).toContain('שמש')
+  })
+})
+
+describe('board size for a word list', () => {
+  it('uses the app default when nothing can be placed', () => {
+    expect(gridSizeForWords([])).toBe(12)
+    expect(gridSizeForWords(['נס', 'פה'])).toBe(12)
+  })
+
+  it('fits the letters with a two-cell margin, and never past the slider', () => {
+    expect(gridSizeForWords(['שמש'])).toBe(8)
+    expect(gridSizeForWords([LETTER_14])).toBe(14)
+    const packed = Array.from({ length: 40 }, () => 'אבגדהוזח')
+    expect(gridSizeForWords(packed)).toBe(20)
   })
 })
 

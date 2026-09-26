@@ -9,7 +9,13 @@ import { DIRECTIONS } from '../generator/directions.ts'
 import { generatePuzzle, type GenerateSuccess } from '../generator/generate.ts'
 import { filterBankWords, hasFinalLetter } from '../generator/hebrew.ts'
 import { puzzleSettingsKey } from '../generator/puzzleRefresh.ts'
-import { MAX_BANK_WORDS } from '../generator/wordLimits.ts'
+import { pictureBlockSize } from '../generator/imageBlocks.ts'
+import {
+  gridSizeForWords,
+  MAX_BANK_WORDS,
+  MAX_GRID_SIZE,
+  MIN_GRID_SIZE,
+} from '../generator/wordLimits.ts'
 import {
   BOARD_IMAGE_IDS,
   HANUKKAH_IMAGE_IDS,
@@ -17,6 +23,7 @@ import {
 } from '../images/catalog.ts'
 import {
   applyHolidayPack,
+  gridSizeAfterHolidayPack,
   HANUKKAH_WORDS,
   holidayPackById,
   HOLIDAY_PACKS,
@@ -24,6 +31,8 @@ import {
   PURIM_WORDS,
   type HolidayPackId,
 } from './holidayPacks.ts'
+
+const DEFAULT_BANK = ['שמש', 'ירח', 'כוכב', 'פרח', 'ספר', 'כדור', 'חתול', 'מים', 'שלום', 'בית']
 
 function success(result: ReturnType<typeof generatePuzzle>): GenerateSuccess {
   expect(result.ok).toBe(true)
@@ -321,5 +330,145 @@ describe('holiday pack controls', () => {
     expect(html).toContain('אוזן המן')
     expect(html).toContain('כתר אסתר')
     expect(html).not.toContain('חתול')
+  })
+})
+
+describe('holiday pack board size', () => {
+  it('derives a slider-sized board from the words the pack will place', () => {
+    expect(gridSizeForWords(HANUKKAH_WORDS)).toBe(10)
+    expect(gridSizeForWords(PURIM_WORDS)).toBe(10)
+    expect(pictureBlockSize(10)).toBe(3)
+
+    const hanukkah = applyHolidayPack({ bank: DEFAULT_BANK }, 'hanukkah')
+    const purim = applyHolidayPack({ bank: DEFAULT_BANK }, 'purim')
+    expect(gridSizeForWords(hanukkah.bank)).toBe(12)
+    expect(gridSizeForWords(purim.bank)).toBe(12)
+    expect(pictureBlockSize(12)).toBe(4)
+
+    const both = applyHolidayPack({ bank: hanukkah.bank }, 'purim')
+    expect(gridSizeForWords(both.bank)).toBe(14)
+    expect(gridSizeForWords(both.bank)).toBeGreaterThanOrEqual(MIN_GRID_SIZE)
+    expect(gridSizeForWords(both.bank)).toBeLessThanOrEqual(MAX_GRID_SIZE)
+  })
+
+  it('bumps a small board when a holiday chip is selected, and that board generates', () => {
+    for (const id of ['hanukkah', 'purim'] as const) {
+      const applied = applyHolidayPack({ bank: DEFAULT_BANK }, id)
+      const sized = gridSizeAfterHolidayPack({
+        packId: id,
+        bank: applied.bank,
+        currentGrid: MIN_GRID_SIZE,
+        savedGrid: null,
+      })
+      expect(sized.savedGrid).toBe(MIN_GRID_SIZE)
+      expect(sized.gridSize).toBe(12)
+      expect(pictureBlockSize(sized.gridSize)).toBe(4)
+      for (const seed of [1, 2, 3, 4, 5]) {
+        const puzzle = success(
+          generatePuzzle({
+            size: sized.gridSize,
+            userWords: applied.bank,
+            directions: ['rtl', 'ttb', 'trbl'],
+            noFinalLetters: applied.noFinals,
+            randomAge10Fill: false,
+            imageCount: 1,
+            imageIds: applied.imageIds,
+            seed,
+          }),
+        )
+        expect(puzzle.imageBlocks).toHaveLength(1)
+        expect(applied.imageIds).toContain(puzzle.imageBlocks[0]!.imageId)
+      }
+    }
+  })
+
+  it('grows again for a second pack and remembers the board from before the holiday', () => {
+    const hanukkah = applyHolidayPack({ bank: DEFAULT_BANK }, 'hanukkah')
+    const afterHanukkah = gridSizeAfterHolidayPack({
+      packId: 'hanukkah',
+      bank: hanukkah.bank,
+      currentGrid: MIN_GRID_SIZE,
+      savedGrid: null,
+    })
+    const purim = applyHolidayPack({ bank: hanukkah.bank }, 'purim')
+    const afterPurim = gridSizeAfterHolidayPack({
+      packId: 'purim',
+      bank: purim.bank,
+      currentGrid: afterHanukkah.gridSize,
+      savedGrid: afterHanukkah.savedGrid,
+    })
+    expect(afterPurim.savedGrid).toBe(MIN_GRID_SIZE)
+    expect(afterPurim.gridSize).toBe(14)
+    const puzzle = success(
+      generatePuzzle({
+        size: afterPurim.gridSize,
+        userWords: purim.bank,
+        directions: ['rtl', 'ttb', 'trbl'],
+        noFinalLetters: purim.noFinals,
+        randomAge10Fill: false,
+        imageCount: 1,
+        imageIds: purim.imageIds,
+        seed: 2,
+      }),
+    )
+    expect(puzzle.words.length).toBeGreaterThan(20)
+  })
+
+  it('restores a larger pre-pack board, and keeps a board that still fits leftover words', () => {
+    const hanukkah = applyHolidayPack({ bank: DEFAULT_BANK }, 'hanukkah')
+    const fromLarge = gridSizeAfterHolidayPack({
+      packId: 'hanukkah',
+      bank: hanukkah.bank,
+      currentGrid: 16,
+      savedGrid: null,
+    })
+    expect(fromLarge.gridSize).toBe(12)
+    expect(fromLarge.savedGrid).toBe(16)
+
+    const regular = applyHolidayPack({ bank: hanukkah.bank }, 'regular')
+    const restored = gridSizeAfterHolidayPack({
+      packId: 'regular',
+      bank: regular.bank,
+      currentGrid: fromLarge.gridSize,
+      savedGrid: fromLarge.savedGrid,
+    })
+    expect(regular.bank).toEqual(hanukkah.bank)
+    expect(restored.savedGrid).toBeNull()
+    expect(restored.gridSize).toBe(16)
+
+    const fromSmall = gridSizeAfterHolidayPack({
+      packId: 'hanukkah',
+      bank: hanukkah.bank,
+      currentGrid: MIN_GRID_SIZE,
+      savedGrid: null,
+    })
+    const back = gridSizeAfterHolidayPack({
+      packId: 'regular',
+      bank: hanukkah.bank,
+      currentGrid: fromSmall.gridSize,
+      savedGrid: fromSmall.savedGrid,
+    })
+    expect(back.gridSize).toBe(fromSmall.gridSize)
+    success(
+      generatePuzzle({
+        size: back.gridSize,
+        userWords: hanukkah.bank,
+        directions: ['rtl', 'ttb', 'trbl'],
+        noFinalLetters: false,
+        randomAge10Fill: false,
+        imageCount: 1,
+        imageIds: hanukkah.imageIds,
+        seed: 3,
+      }),
+    )
+
+    const alreadyRegular = gridSizeAfterHolidayPack({
+      packId: 'regular',
+      bank: DEFAULT_BANK,
+      currentGrid: 9,
+      savedGrid: null,
+    })
+    expect(alreadyRegular.gridSize).toBe(9)
+    expect(alreadyRegular.savedGrid).toBeNull()
   })
 })

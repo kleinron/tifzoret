@@ -1,5 +1,5 @@
 import { hasFinalLetter } from '../generator/hebrew.ts'
-import { MAX_BANK_WORDS } from '../generator/wordLimits.ts'
+import { gridSizeForWords, MAX_BANK_WORDS } from '../generator/wordLimits.ts'
 import {
   BOARD_IMAGE_IDS,
   HANUKKAH_IMAGE_IDS,
@@ -144,5 +144,34 @@ export function applyHolidayPack(
       packId === 'regular' ? [...current.bank] : prioritizePackWords(current.bank, pack.words),
     noFinals: pack.noFinals,
     imageIds: pack.imageIds,
+  }
+}
+
+/**
+ * Board side after a holiday chip.
+ * A holiday pack sets the side from the bank it just wrote (pack words
+ * in front, other words kept). «רגיל» puts back the side from before the
+ * holiday, unless the words still in the bank need a larger board.
+ * Clicking «רגיל» while it is already selected leaves the side alone.
+ */
+export function gridSizeAfterHolidayPack(input: {
+  packId: HolidayPackId
+  bank: readonly string[]
+  currentGrid: number
+  /** Side to restore on «רגיל». Null while the regular pack is selected. */
+  savedGrid: number | null
+}): { gridSize: number; savedGrid: number | null } {
+  if (input.packId === 'regular') {
+    if (input.savedGrid == null) {
+      return { gridSize: input.currentGrid, savedGrid: null }
+    }
+    return {
+      gridSize: Math.max(input.savedGrid, gridSizeForWords(input.bank)),
+      savedGrid: null,
+    }
+  }
+  return {
+    gridSize: gridSizeForWords(input.bank),
+    savedGrid: input.savedGrid ?? input.currentGrid,
   }
 }

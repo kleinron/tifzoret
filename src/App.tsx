@@ -30,6 +30,7 @@ import {
   editorValidation,
   formatRemainingDraft,
   looksLikeWordList,
+  DEFAULT_GRID_SIZE,
   MAX_BANK_WORDS,
   MAX_GRID_SIZE,
   MAX_WORD_LENGTH,
@@ -40,6 +41,7 @@ import {
 import {
   applyHolidayPack,
   DEFAULT_NO_FINALS,
+  gridSizeAfterHolidayPack,
   holidayPackById,
   type HolidayPackId,
 } from './data/holidayPacks.ts'
@@ -76,7 +78,7 @@ function clamp(value: number, min: number, max: number, fallback: number): numbe
 }
 
 function clampGridSize(value: number): number {
-  return clamp(value, MIN_GRID_SIZE, MAX_GRID_SIZE, 12)
+  return clamp(value, MIN_GRID_SIZE, MAX_GRID_SIZE, DEFAULT_GRID_SIZE)
 }
 
 function cellKey(cell: Cell): string {
@@ -106,7 +108,7 @@ export default function App() {
   const [holidayPack, setHolidayPack] = useState<HolidayPackId>('regular')
   const [holidayOpen, setHolidayOpen] = useState(false)
   const [gridSize, setGridSize] = useState(() =>
-    boot?.settings ? clampGridSize(boot.settings.gridSize) : 12,
+    boot?.settings ? clampGridSize(boot.settings.gridSize) : DEFAULT_GRID_SIZE,
   )
   const [imageCount, setImageCount] = useState(() =>
     boot?.settings
@@ -132,6 +134,8 @@ export default function App() {
   const closeCatalog = useCallback(() => setCatalogOpen(false), [])
   const actionRef = useRef<PuzzleRefresh>('settings')
   const bootedRef = useRef(false)
+  /** Board side in use before the current holiday visit. Null on «רגיל». */
+  const gridBeforeHolidayRef = useRef<number | null>(null)
   const genIdRef = useRef(0)
   const genTimerRef = useRef<number | null>(null)
   const [manualNonce, setManualNonce] = useState(0)
@@ -219,9 +223,17 @@ export default function App() {
 
   const selectHoliday = (id: HolidayPackId) => {
     const next = applyHolidayPack({ bank }, id)
+    const sized = gridSizeAfterHolidayPack({
+      packId: id,
+      bank: next.bank,
+      currentGrid: gridSize,
+      savedGrid: gridBeforeHolidayRef.current,
+    })
+    gridBeforeHolidayRef.current = sized.savedGrid
     setHolidayPack(next.packId)
     setBank(next.bank)
     setNoFinals(next.noFinals)
+    applyGridSize(sized.gridSize)
   }
 
   const requestGenerate = (action: PuzzleRefresh) => {
