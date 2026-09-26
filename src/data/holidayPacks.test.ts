@@ -9,7 +9,13 @@ import { DIRECTIONS } from '../generator/directions.ts'
 import { generatePuzzle, type GenerateSuccess } from '../generator/generate.ts'
 import { filterBankWords, hasFinalLetter } from '../generator/hebrew.ts'
 import { puzzleSettingsKey } from '../generator/puzzleRefresh.ts'
-import { MAX_BANK_WORDS } from '../generator/wordLimits.ts'
+import { clampImageCount, pictureBlockSize } from '../generator/imageBlocks.ts'
+import {
+  gridSizeForWordCount,
+  MAX_BANK_WORDS,
+  MAX_GRID_SIZE,
+  MIN_GRID_SIZE,
+} from '../generator/wordLimits.ts'
 import {
   BOARD_IMAGE_IDS,
   HANUKKAH_IMAGE_IDS,
@@ -17,6 +23,7 @@ import {
 } from '../images/catalog.ts'
 import {
   applyHolidayPack,
+  gridSizeAfterHolidayPack,
   HANUKKAH_WORDS,
   holidayPackById,
   HOLIDAY_PACKS,
@@ -24,6 +31,8 @@ import {
   PURIM_WORDS,
   type HolidayPackId,
 } from './holidayPacks.ts'
+
+const DEFAULT_BANK = ['שמש', 'ירח', 'כוכב', 'פרח', 'ספר', 'כדור', 'חתול', 'מים', 'שלום', 'בית']
 
 function success(result: ReturnType<typeof generatePuzzle>): GenerateSuccess {
   expect(result.ok).toBe(true)
@@ -321,5 +330,104 @@ describe('holiday pack controls', () => {
     expect(html).toContain('אוזן המן')
     expect(html).toContain('כתר אסתר')
     expect(html).not.toContain('חתול')
+  })
+})
+
+describe('holiday pack board size', () => {
+  it('sizes from the merged bank with the existing word target', () => {
+    const hanukkah = applyHolidayPack({ bank: DEFAULT_BANK }, 'hanukkah')
+    const purim = applyHolidayPack({ bank: DEFAULT_BANK }, 'purim')
+    expect(hanukkah.bank).toHaveLength(HANUKKAH_WORDS.length + DEFAULT_BANK.length)
+    expect(purim.bank).toHaveLength(PURIM_WORDS.length + DEFAULT_BANK.length)
+    expect(gridSizeForWordCount(hanukkah.bank.length)).toBe(MAX_GRID_SIZE)
+    expect(gridSizeForWordCount(purim.bank.length)).toBe(MAX_GRID_SIZE)
+    expect(gridSizeForWordCount(HANUKKAH_WORDS.length)).toBe(13)
+    expect(gridSizeForWordCount(PURIM_WORDS.length)).toBe(10)
+    expect(pictureBlockSize(10)).toBe(3)
+    expect(pictureBlockSize(13)).toBe(4)
+  })
+
+  it('raises a small board for חנוכה and פורים, and that board generates', () => {
+    for (const id of ['hanukkah', 'purim'] as const) {
+      const applied = applyHolidayPack({ bank: DEFAULT_BANK }, id)
+      const nextSize = gridSizeAfterHolidayPack({
+        packId: id,
+        bank: applied.bank,
+        currentGrid: MIN_GRID_SIZE,
+      })
+      expect(nextSize).toBe(MAX_GRID_SIZE)
+      expect(nextSize).toBeGreaterThan(MIN_GRID_SIZE)
+      expect(clampImageCount(1, nextSize)).toBe(1)
+      expect(pictureBlockSize(nextSize)).toBe(4)
+      for (const seed of [1, 2, 3]) {
+        const puzzle = success(
+          generatePuzzle({
+            size: nextSize,
+            userWords: applied.bank,
+            directions: ['rtl', 'ttb', 'trbl'],
+            noFinalLetters: applied.noFinals,
+            randomAge10Fill: false,
+            imageCount: clampImageCount(1, nextSize),
+            imageIds: applied.imageIds,
+            seed,
+          }),
+        )
+        expect(puzzle.imageBlocks).toHaveLength(1)
+        expect(applied.imageIds).toContain(puzzle.imageBlocks[0]!.imageId)
+      }
+    }
+  })
+
+  it('does not shrink a board that is already large enough', () => {
+    const applied = applyHolidayPack({ bank: [] }, 'purim')
+    expect(gridSizeForWordCount(applied.bank.length)).toBe(10)
+    expect(
+      gridSizeAfterHolidayPack({
+        packId: 'purim',
+        bank: applied.bank,
+        currentGrid: 16,
+      }),
+    ).toBe(16)
+    expect(
+      gridSizeAfterHolidayPack({
+        packId: 'purim',
+        bank: applied.bank,
+        currentGrid: MIN_GRID_SIZE,
+      }),
+    ).toBe(10)
+  })
+
+  it('still grows to the הגדל לוח size when a bank word is longer than the board', () => {
+    const longWord = 'אבגדהוזחטיכלמנ'
+    expect(longWord).toHaveLength(14)
+    const applied = applyHolidayPack({ bank: [longWord] }, 'purim')
+    expect(applied.bank).toContain(longWord)
+    expect(
+      gridSizeAfterHolidayPack({
+        packId: 'purim',
+        bank: applied.bank,
+        currentGrid: MIN_GRID_SIZE,
+      }),
+    ).toBe(14)
+  })
+
+  it('leaves the board size unchanged for רגיל', () => {
+    const hanukkah = applyHolidayPack({ bank: DEFAULT_BANK }, 'hanukkah')
+    const regular = applyHolidayPack({ bank: hanukkah.bank }, 'regular')
+    expect(regular.bank).toEqual(hanukkah.bank)
+    expect(
+      gridSizeAfterHolidayPack({
+        packId: 'regular',
+        bank: regular.bank,
+        currentGrid: MIN_GRID_SIZE,
+      }),
+    ).toBe(MIN_GRID_SIZE)
+    expect(
+      gridSizeAfterHolidayPack({
+        packId: 'regular',
+        bank: regular.bank,
+        currentGrid: 16,
+      }),
+    ).toBe(16)
   })
 })

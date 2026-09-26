@@ -1,5 +1,9 @@
 import { hasFinalLetter } from '../generator/hebrew.ts'
-import { MAX_BANK_WORDS } from '../generator/wordLimits.ts'
+import {
+  gridSizeForWordCount,
+  MAX_BANK_WORDS,
+  suggestedGridSizeForWords,
+} from '../generator/wordLimits.ts'
 import {
   BOARD_IMAGE_IDS,
   HANUKKAH_IMAGE_IDS,
@@ -145,4 +149,22 @@ export function applyHolidayPack(
     noFinals: pack.noFinals,
     imageIds: pack.imageIds,
   }
+}
+
+/**
+ * Board side after a holiday chip.
+ * חנוכה and פורים use the merged bank: pack words in front, existing words
+ * kept. The side rises to the same word target automatic fill already uses,
+ * and to the «הגדל לוח» size when a word is longer than the current board.
+ * It never goes down. «רגיל» leaves the side as it is.
+ */
+export function gridSizeAfterHolidayPack(input: {
+  packId: HolidayPackId
+  bank: readonly string[]
+  currentGrid: number
+}): number {
+  if (input.packId === 'regular') return input.currentGrid
+  const forCount = gridSizeForWordCount(input.bank.length)
+  const forLength = suggestedGridSizeForWords(input.bank, input.currentGrid) ?? 0
+  return Math.max(input.currentGrid, forCount, forLength)
 }

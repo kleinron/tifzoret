@@ -8,6 +8,9 @@ export const MAX_BANK_WORDS = 50
 export const MAX_GRID_SIZE = 20
 export const MIN_GRID_SIZE = 8
 
+/** Board side when the visitor has not chosen one and no share link set it. */
+export const DEFAULT_GRID_SIZE = 12
+
 export type WordIntakeResult = {
   accepted: string[]
   nextBank: string[]
@@ -182,10 +185,28 @@ export function capBankWords(
   }
 }
 
+/**
+ * How many words a board of this side is built to hold.
+ * Automatic fill uses the same target and stops once the bank reaches it.
+ */
+export function gridWordTarget(size: number): number {
+  return Math.max(6, Math.round(size * 1.05))
+}
+
+/**
+ * Smallest slider size whose {@link gridWordTarget} covers `wordCount`.
+ * A count past the 20×20 target stays at {@link MAX_GRID_SIZE}.
+ */
+export function gridSizeForWordCount(wordCount: number): number {
+  for (let size = MIN_GRID_SIZE; size <= MAX_GRID_SIZE; size++) {
+    if (gridWordTarget(size) >= wordCount) return size
+  }
+  return MAX_GRID_SIZE
+}
+
 /** How many age-10 extras to request, never crossing the bank cap. */
 export function extraFillCount(size: number, existingCount: number): number {
-  const densityTarget = Math.max(6, Math.round(size * 1.05))
-  const desired = Math.max(0, densityTarget - existingCount)
+  const desired = Math.max(0, gridWordTarget(size) - existingCount)
   const room = Math.max(0, MAX_BANK_WORDS - existingCount)
   return Math.min(desired, room)
 }
