@@ -79,10 +79,10 @@ export function OilJugIcon() {
   return (
     <Icon backdrop="#fff1e0">
       <path
-        d="M42 26c9 1 12 9 8 15"
+        d="M32 26c20-2 24 14 2 22"
         fill="none"
         stroke="#c46a4a"
-        strokeWidth="3.4"
+        strokeWidth="3.6"
         strokeLinecap="round"
       />
       <ellipse cx="30" cy="40" rx="14" ry="15" fill="#d98978" />
@@ -91,13 +91,13 @@ export function OilJugIcon() {
       <ellipse cx="30" cy="20" rx="7" ry="3.2" fill="#e0a83a" />
       <ellipse cx="30" cy="20" rx="3.4" ry="1.5" fill="#f6c445" />
       <path
-        d="M46 14c3-4 8-3 8 1"
+        d="M27 18.4c.4-5.4 5.6-5.4 6 0"
         fill="none"
         stroke="#f0b429"
         strokeWidth="2.2"
         strokeLinecap="round"
       />
-      <circle cx="52" cy="18" r="2.6" fill="#f6c445" />
+      <circle cx="30" cy="15.6" r="2.4" fill="#f6c445" />
     </Icon>
   )
 }
@@ -105,15 +105,24 @@ export function OilJugIcon() {
 export function SufganiyahIcon() {
   return (
     <Icon backdrop="#fde8f0">
-      <circle cx="32" cy="36" r="16" fill="#e0944a" />
-      <path d="M17 34c1-12 12-16 22-14 8 2 12 10 10 18-2 8-10 14-18 13-10-1-15-7-14-17z" fill="#e86b93" />
-      <ellipse cx="26" cy="30" rx="4" ry="2.4" fill="#f7b3c8" />
-      <circle cx="32" cy="34" r="5" fill="#fde8f0" />
-      <circle cx="22" cy="28" r="1.4" fill="#f6c445" />
-      <circle cx="29" cy="24" r="1.3" fill="#fffdf8" />
-      <circle cx="39" cy="26" r="1.4" fill="#5a9a45" />
-      <circle cx="43" cy="33" r="1.3" fill="#f6c445" />
-      <circle cx="23" cy="36" r="1.2" fill="#3d9cc9" />
+      <circle cx="32" cy="37" r="15.5" fill="#c4892a" />
+      <circle cx="32" cy="33.5" r="15.5" fill="#e0944a" />
+      <ellipse cx="25.5" cy="28" rx="5" ry="3" fill="#f2c36a" />
+      <g fill="#fffdf8">
+        <circle cx="24" cy="24" r="1.8" />
+        <circle cx="29" cy="21.5" r="1.6" />
+        <circle cx="34" cy="22.2" r="1.9" />
+        <circle cx="39" cy="24" r="1.5" />
+        <circle cx="22" cy="28.5" r="1.4" />
+        <circle cx="27.5" cy="27" r="1.3" />
+        <circle cx="36.5" cy="27.2" r="1.6" />
+        <circle cx="41.5" cy="28.5" r="1.3" />
+        <circle cx="31" cy="25.5" r="1.2" />
+        <circle cx="20.5" cy="32" r="1.15" />
+        <circle cx="43" cy="32" r="1.1" />
+      </g>
+      <ellipse cx="33" cy="35.2" rx="3.3" ry="2.3" fill="#c43b3b" />
+      <ellipse cx="32.1" cy="34.4" rx="1.4" ry="0.85" fill="#e24b4b" />
     </Icon>
   )
 }
