@@ -31,6 +31,7 @@ import {
   editorValidation,
   enlargedGridSizeForWords,
   ENLARGE_GRID_LABEL,
+  ENLARGE_GRID_MAX_HINT,
   formatRemainingDraft,
   looksLikeWordList,
   DEFAULT_GRID_SIZE,
@@ -455,15 +456,25 @@ export default function App() {
             <div className="banner error no-print" role="alert">
               <p>{error}</p>
               {error === PLACEMENT_FAILED_HE ? (
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={enlargedGridSizeForWords(bank, gridSize) === null}
-                  onPointerDown={() => cancelCommittedSliderDrafts()}
-                  onClick={enlargeGrid}
-                >
-                  {ENLARGE_GRID_LABEL}
-                </button>
+                <div className="banner-enlarge">
+                  <button
+                    type="button"
+                    className="secondary banner-enlarge-btn"
+                    disabled={enlargedGridSizeForWords(bank, gridSize) === null}
+                    aria-describedby={
+                      gridSize >= MAX_GRID_SIZE ? 'enlarge-grid-max-hint' : undefined
+                    }
+                    onPointerDown={() => cancelCommittedSliderDrafts()}
+                    onClick={enlargeGrid}
+                  >
+                    {ENLARGE_GRID_LABEL}
+                  </button>
+                  {gridSize >= MAX_GRID_SIZE ? (
+                    <span id="enlarge-grid-max-hint" className="banner-enlarge-hint">
+                      {ENLARGE_GRID_MAX_HINT}
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           ) : null}

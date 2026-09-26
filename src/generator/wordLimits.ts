@@ -207,6 +207,9 @@ export function gridSizeForWordCount(wordCount: number): number {
 /** Failure-banner action. The word-length CTA stays «הגדל לוח ל־N». */
 export const ENLARGE_GRID_LABEL = 'הגדל רשת'
 
+/** Shown with the disabled «הגדל רשת» control when the slider is already at 20. */
+export const ENLARGE_GRID_MAX_HINT = 'הרשת כבר בגודל המרבי'
+
 /**
  * Larger slider size for these words, or null when it would not grow the board.
  * Count uses {@link gridSizeForWordCount}. A word longer than the board uses

@@ -8,7 +8,11 @@ import App from '../App.tsx'
 import type { DirectionId } from '../generator/directions.ts'
 import { PLACEMENT_FAILED_HE } from '../generator/generate.ts'
 import { HEBREW_LETTERS } from '../generator/hebrew.ts'
-import { ENLARGE_GRID_LABEL, enlargedGridSizeForWords } from '../generator/wordLimits.ts'
+import {
+  ENLARGE_GRID_LABEL,
+  ENLARGE_GRID_MAX_HINT,
+  enlargedGridSizeForWords,
+} from '../generator/wordLimits.ts'
 import { encodeSharePayload, type ShareSettings } from '../share/codec.ts'
 
 function setNativeValue(el: HTMLInputElement, value: string) {
@@ -146,11 +150,15 @@ describe('enlarge grid from a failed build', () => {
     const view = await renderApp()
 
     const banner = view.container.querySelector('.banner.error')
-    expect(banner?.textContent).toContain(PLACEMENT_FAILED_HE)
+    const message = banner?.querySelector(':scope > p')
+    expect(message?.textContent).toBe(PLACEMENT_FAILED_HE)
     const button = enlargeButton(view.container)
     expect(button?.textContent).toBe(ENLARGE_GRID_LABEL)
-    expect(button?.className).toContain('primary')
+    expect(button?.classList.contains('secondary')).toBe(true)
+    expect(button?.classList.contains('primary')).toBe(false)
+    expect(message?.contains(button!)).toBe(false)
     expect(button?.disabled).toBe(false)
+    expect(view.container.querySelector('.banner-enlarge-hint')).toBeNull()
     expect(sizeLabel(view.container)).toBe('גודל רשת: 8×8')
 
     const range = rangeByLabel(view.container, 'גודל רשת')
@@ -211,7 +219,8 @@ describe('enlarge grid from a failed build', () => {
     await settlePuzzle()
     const after = enlargeButton(view.container)
     expect(after?.disabled).toBe(true)
-    expect(view.container.querySelector('.banner.error')?.textContent).toContain(
+    expect(view.container.querySelector('.banner-enlarge-hint')).toBeNull()
+    expect(view.container.querySelector('.banner.error > p')?.textContent).toBe(
       PLACEMENT_FAILED_HE,
     )
     expect(sizeLabel(view.container)).toBe('גודל רשת: 11×11')
@@ -229,7 +238,14 @@ describe('enlarge grid from a failed build', () => {
     )
     const button = enlargeButton(view.container)
     expect(button?.textContent).toBe(ENLARGE_GRID_LABEL)
+    expect(button?.classList.contains('secondary')).toBe(true)
     expect(button?.disabled).toBe(true)
+    expect(view.container.querySelector('.banner-enlarge-hint')?.textContent).toBe(
+      ENLARGE_GRID_MAX_HINT,
+    )
+    expect(view.container.querySelector('.banner.error > p')?.textContent).toBe(
+      PLACEMENT_FAILED_HE,
+    )
     await act(async () => {
       clickControl(button!)
     })

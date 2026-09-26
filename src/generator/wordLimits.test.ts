@@ -11,6 +11,7 @@ import {
   AGE10_FILL_LABEL,
   age10FillHint,
   ENLARGE_GRID_LABEL,
+  ENLARGE_GRID_MAX_HINT,
   enlargedGridSizeForWords,
   extraFillCount,
   growBoardCtaLabel,
@@ -98,6 +99,7 @@ describe('board size for a word count', () => {
 describe('larger grid after a failed build', () => {
   it('reuses the word-count target and the הגדל לוח length, clamped to 20', () => {
     expect(ENLARGE_GRID_LABEL).toBe('הגדל רשת')
+    expect(ENLARGE_GRID_MAX_HINT).toBe('הרשת כבר בגודל המרבי')
     const nine = manyWords(9, 3)
     expect(enlargedGridSizeForWords(nine, 8)).toBe(gridSizeForWordCount(9))
     expect(enlargedGridSizeForWords(nine, 8)).toBe(9)
