@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ClipboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { DirectionArrow } from './actionIcons.tsx'
 import {
   directionArrowRotation,
@@ -24,6 +24,8 @@ function clampSlider(raw: number, min: number, max: number): number | null {
  * Range that previews while the thumb moves and commits once, on release.
  * React's onChange follows every input event, so a drag must not call onCommit
  * until pointerup / keyup. The paired number field commits on each typed value.
+ * A parent write (holiday pack, הגדל לוח) drops an open preview. A later input
+ * event that still carries the old thumb must not commit over that write.
  */
 function CommittedSlider(props: {
   min: number
@@ -35,6 +37,8 @@ function CommittedSlider(props: {
 }) {
   const rangeRef = useRef<HTMLInputElement>(null)
   const finishRef = useRef<(() => void) | null>(null)
+  const armedRef = useRef(false)
+  const seenValue = useRef(props.value)
   const liveRef = useRef({
     value: props.value,
     min: props.min,
@@ -53,6 +57,22 @@ function CommittedSlider(props: {
     }
   }, [props.value, props.min, props.max, props.onCommit])
 
+  const releasePointer = () => {
+    const finish = finishRef.current
+    if (!finish) return
+    window.removeEventListener('pointerup', finish)
+    window.removeEventListener('pointercancel', finish)
+    finishRef.current = null
+  }
+
+  useLayoutEffect(() => {
+    if (seenValue.current === props.value) return
+    seenValue.current = props.value
+    armedRef.current = false
+    releasePointer()
+    setDraft(null)
+  }, [props.value])
+
   useEffect(() => {
     return () => {
       if (!finishRef.current) return
@@ -63,6 +83,9 @@ function CommittedSlider(props: {
   }, [])
 
   const commit = (raw: number) => {
+    if (!armedRef.current) return
+    armedRef.current = false
+    releasePointer()
     const live = liveRef.current
     const next = clampSlider(raw, live.min, live.max)
     if (next === null || next === live.value) {
@@ -74,16 +97,22 @@ function CommittedSlider(props: {
   }
 
   const armRelease = (event: ReactPointerEvent<HTMLInputElement>) => {
+    armedRef.current = true
     if (finishRef.current) return
     const finish = () => {
       window.removeEventListener('pointerup', finish)
       window.removeEventListener('pointercancel', finish)
-      finishRef.current = null
+      if (finishRef.current === finish) finishRef.current = null
       commit(Number(rangeRef.current?.value ?? event.currentTarget.value))
     }
     finishRef.current = finish
     window.addEventListener('pointerup', finish)
     window.addEventListener('pointercancel', finish)
+  }
+
+  const keepParentValue = (element: HTMLInputElement) => {
+    const parent = String(props.value)
+    if (element.value !== parent) element.value = parent
   }
 
   return (
@@ -97,11 +126,18 @@ function CommittedSlider(props: {
           max={props.max}
           step={1}
           value={shown}
+          onPointerDown={armRelease}
+          onKeyDown={() => {
+            armedRef.current = true
+          }}
           onChange={(e) => {
+            if (!armedRef.current) {
+              keepParentValue(e.currentTarget)
+              return
+            }
             const next = clampSlider(Number(e.target.value), props.min, props.max)
             if (next !== null) setDraft({ value: next, base: props.value })
           }}
-          onPointerDown={armRelease}
           onKeyUp={() => commit(Number(rangeRef.current?.value))}
           onBlur={() => commit(Number(rangeRef.current?.value))}
         />
@@ -111,15 +147,20 @@ function CommittedSlider(props: {
           max={props.max}
           step={1}
           value={shown}
+          onPointerDown={() => {
+            armedRef.current = true
+          }}
+          onKeyDown={() => {
+            armedRef.current = true
+          }}
           onChange={(e) => {
-            const next = Number(e.target.value)
-            if (!Number.isFinite(next) || next < props.min || next > props.max) return
-            if (next === props.value) {
-              setDraft(null)
+            if (!armedRef.current) {
+              keepParentValue(e.currentTarget)
               return
             }
-            setDraft({ value: next, base: props.value })
-            props.onCommit(next)
+            const next = Number(e.target.value)
+            if (!Number.isFinite(next) || next < props.min || next > props.max) return
+            commit(next)
           }}
           aria-label={props.numberLabel}
         />
