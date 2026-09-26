@@ -204,6 +204,29 @@ export function gridSizeForWordCount(wordCount: number): number {
   return MAX_GRID_SIZE
 }
 
+/** Failure-banner action. The word-length CTA stays «הגדל לוח ל־N». */
+export const ENLARGE_GRID_LABEL = 'הגדל רשת'
+
+/** Shown with the disabled «הגדל רשת» control when the slider is already at 20. */
+export const ENLARGE_GRID_MAX_HINT = 'הרשת כבר בגודל המרבי'
+
+/**
+ * Larger slider size for these words, or null when it would not grow the board.
+ * Count uses {@link gridSizeForWordCount}. A word longer than the board uses
+ * {@link suggestedGridSizeForWords} — the same size as «הגדל לוח». Clamped to
+ * the slider max. Same pair the holiday chips already take the max of.
+ */
+export function enlargedGridSizeForWords(
+  words: readonly string[],
+  gridSize: number,
+): number | null {
+  const forCount = gridSizeForWordCount(words.length)
+  const forLength = suggestedGridSizeForWords(words, gridSize) ?? 0
+  const next = Math.min(MAX_GRID_SIZE, Math.max(forCount, forLength))
+  if (next <= gridSize) return null
+  return next
+}
+
 /** How many age-10 extras to request, never crossing the bank cap. */
 export function extraFillCount(size: number, existingCount: number): number {
   const desired = Math.max(0, gridWordTarget(size) - existingCount)

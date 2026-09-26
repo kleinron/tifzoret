@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { DirectionArrow } from './actionIcons.tsx'
+import { registerSliderDraftCancel } from './sliderDraft.ts'
 import {
   directionArrowRotation,
   type Direction,
@@ -24,8 +25,9 @@ function clampSlider(raw: number, min: number, max: number): number | null {
  * Range that previews while the thumb moves and commits once, on release.
  * React's onChange follows every input event, so a drag must not call onCommit
  * until pointerup / keyup. The paired number field commits on each typed value.
- * A parent write (holiday pack, הגדל לוח) drops an open preview. A later input
- * event that still carries the old thumb must not commit over that write.
+ * A parent write (holiday pack, הגדל לוח, הגדל רשת) drops an open preview. A
+ * later input event that still carries the old thumb must not commit over
+ * that write.
  */
 function CommittedSlider(props: {
   min: number
@@ -72,6 +74,19 @@ function CommittedSlider(props: {
     releasePointer()
     setDraft(null)
   }, [props.value])
+
+  useEffect(() => {
+    return registerSliderDraftCancel(() => {
+      armedRef.current = false
+      const finish = finishRef.current
+      if (finish) {
+        window.removeEventListener('pointerup', finish)
+        window.removeEventListener('pointercancel', finish)
+        finishRef.current = null
+      }
+      setDraft(null)
+    })
+  }, [])
 
   useEffect(() => {
     return () => {

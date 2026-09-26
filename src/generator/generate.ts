@@ -111,6 +111,10 @@ export type GenerateResult = GenerateSuccess | GenerateFailure
 const DEFAULT_MAX_PLACEMENT = 80
 const DEFAULT_MAX_REPAIR = 180
 
+/** Placement or uniqueness could not be finished. The failure banner offers «הגדל רשת». */
+export const PLACEMENT_FAILED_HE =
+  'לא הצלחנו לייצר את התפזורת הרצויה. נסו רשת גדולה יותר, פחות מילים, פחות כיוונים, או פחות תמונות.'
+
 function fail(
   error: string,
   errorHe: string,
@@ -518,7 +522,7 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
 
   return fail(
     `Could not build a unique puzzle after ${maxPlacement} attempts.`,
-    'לא הצלחנו לייצר את התפזורת הרצויה. נסו רשת גדולה יותר, פחות מילים, פחות כיוונים, או פחות תמונות.',
+    PLACEMENT_FAILED_HE,
     skips,
   )
 }

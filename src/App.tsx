@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ImageCatalogModal } from './components/ImageCatalogModal.tsx'
 import { WordBank } from './components/WordBank.tsx'
+import { cancelCommittedSliderDrafts } from './components/sliderDraft.ts'
 import { SettingsPanel } from './components/SettingsPanel.tsx'
 import { PrinterIcon } from './components/actionIcons.tsx'
 import { ShareButton } from './components/ShareButton.tsx'
@@ -10,7 +11,7 @@ import {
   DIRECTIONS,
   type DirectionId,
 } from './generator/directions.ts'
-import { generatePuzzle, lettersAlong } from './generator/generate.ts'
+import { generatePuzzle, lettersAlong, PLACEMENT_FAILED_HE } from './generator/generate.ts'
 import {
   boardAfterFailedGenerate,
   imagePolicyForRefresh,
@@ -28,6 +29,9 @@ import { parseWordList } from './generator/hebrew.ts'
 import type { Cell } from './generator/verify.ts'
 import {
   editorValidation,
+  enlargedGridSizeForWords,
+  ENLARGE_GRID_LABEL,
+  ENLARGE_GRID_MAX_HINT,
   formatRemainingDraft,
   looksLikeWordList,
   DEFAULT_GRID_SIZE,
@@ -205,6 +209,15 @@ export default function App() {
     const next = clampGridSize(value)
     setGridSize(next)
     setImageCount((current) => clampImageCount(current, next))
+  }
+
+  const enlargeGrid = () => {
+    cancelCommittedSliderDrafts()
+    const live = liveRef.current
+    const next = enlargedGridSizeForWords(live.bank, live.gridSize)
+    if (next === null) return
+    // Parent write: the size change also drops a draft that survived pointerdown.
+    applyGridSize(next)
   }
 
   const growBoard = (size: number) => {
@@ -439,7 +452,32 @@ export default function App() {
         />
 
         <main className="center-col">
-          {error ? <p className="banner error no-print">{error}</p> : null}
+          {error ? (
+            <div className="banner error no-print" role="alert">
+              <p>{error}</p>
+              {error === PLACEMENT_FAILED_HE ? (
+                <div className="banner-enlarge">
+                  <button
+                    type="button"
+                    className="secondary banner-enlarge-btn"
+                    disabled={enlargedGridSizeForWords(bank, gridSize) === null}
+                    aria-describedby={
+                      gridSize >= MAX_GRID_SIZE ? 'enlarge-grid-max-hint' : undefined
+                    }
+                    onPointerDown={() => cancelCommittedSliderDrafts()}
+                    onClick={enlargeGrid}
+                  >
+                    {ENLARGE_GRID_LABEL}
+                  </button>
+                  {gridSize >= MAX_GRID_SIZE ? (
+                    <span id="enlarge-grid-max-hint" className="banner-enlarge-hint">
+                      {ENLARGE_GRID_MAX_HINT}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {notes.length > 0 && !error ? (
             <ul className="banner notes no-print">
               {notes.map((n) => (
