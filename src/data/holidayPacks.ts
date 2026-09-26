@@ -1,7 +1,6 @@
 import { hasFinalLetter } from '../generator/hebrew.ts'
 import {
   gridSizeForWordCount,
-  MAX_BANK_WORDS,
   suggestedGridSizeForWords,
 } from '../generator/wordLimits.ts'
 import {
@@ -102,33 +101,6 @@ export function holidayPackById(id: HolidayPackId): HolidayPack {
   return pack
 }
 
-/**
- * Holiday words go to the front. Copies already in the bank are removed.
- * Other user words stay, in their previous order, after the pack.
- * When the bank would pass the cap, holiday words keep their seats.
- */
-export function prioritizePackWords(
-  bank: readonly string[],
-  packWords: readonly string[],
-  max: number = MAX_BANK_WORDS,
-): string[] {
-  const front: string[] = []
-  const seen = new Set<string>()
-  for (const word of packWords) {
-    if (!word || seen.has(word) || front.length >= max) continue
-    seen.add(word)
-    front.push(word)
-  }
-  const rest: string[] = []
-  for (const word of bank) {
-    if (!word || seen.has(word)) continue
-    if (front.length + rest.length >= max) break
-    seen.add(word)
-    rest.push(word)
-  }
-  return [...front, ...rest]
-}
-
 export type AppliedHolidayPack = {
   packId: HolidayPackId
   bank: string[]
@@ -136,7 +108,11 @@ export type AppliedHolidayPack = {
   imageIds: readonly BoardImageId[]
 }
 
-/** «רגיל» restores the default checkbox and catalog, and leaves the bank as it is. */
+/**
+ * חנוכה and פורים replace the word bank with that pack’s words only.
+ * Words from the previous pack and from manual edits are dropped.
+ * «רגיל» restores the default checkbox and catalog, and leaves the bank as it is.
+ */
 export function applyHolidayPack(
   current: { bank: readonly string[] },
   packId: HolidayPackId,
@@ -144,8 +120,7 @@ export function applyHolidayPack(
   const pack = holidayPackById(packId)
   return {
     packId,
-    bank:
-      packId === 'regular' ? [...current.bank] : prioritizePackWords(current.bank, pack.words),
+    bank: packId === 'regular' ? [...current.bank] : [...pack.words],
     noFinals: pack.noFinals,
     imageIds: pack.imageIds,
   }
@@ -153,8 +128,8 @@ export function applyHolidayPack(
 
 /**
  * Board side after a holiday chip.
- * חנוכה and פורים use the merged bank: pack words in front, existing words
- * kept. The side rises to the same word target automatic fill already uses,
+ * חנוכה and פורים size from the replaced bank (that pack’s words only).
+ * The side rises to the same word target automatic fill already uses,
  * and to the «הגדל לוח» size when a word is longer than the current board.
  * It never goes down. «רגיל» leaves the side as it is.
  */

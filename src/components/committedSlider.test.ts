@@ -6,8 +6,9 @@ import { createRoot, type Root } from 'react-dom/client'
 import { describe, expect, it } from 'vitest'
 import App from '../App.tsx'
 import { SettingsPanel } from './SettingsPanel.tsx'
+import { HANUKKAH_WORDS, PURIM_WORDS } from '../data/holidayPacks.ts'
 import { DIRECTIONS } from '../generator/directions.ts'
-import { MAX_BANK_WORDS } from '../generator/wordLimits.ts'
+import { gridSizeForWordCount, MAX_BANK_WORDS } from '../generator/wordLimits.ts'
 
 function setNativeValue(el: HTMLInputElement, value: string) {
   const proto = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')
@@ -205,6 +206,14 @@ async function chooseHoliday(container: ParentNode, label: string) {
   })
 }
 
+function bankWords(root: ParentNode): string[] {
+  return [...root.querySelectorAll('.chip-list .chip')].map((button) => {
+    const copy = button.cloneNode(true) as HTMLElement
+    copy.querySelector('span')?.remove()
+    return (copy.textContent ?? '').trim()
+  })
+}
+
 async function settlePuzzle() {
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 600))
@@ -238,30 +247,64 @@ describe('holiday pack board size in the app', () => {
     expect(sizeLabel(hanukkah.container)).toBe('גודל רשת: 8×8')
     await chooseHoliday(hanukkah.container, 'חנוכה')
     await staleThumb(gridRange(hanukkah.container), '8')
-    expect(sizeLabel(hanukkah.container)).toBe('גודל רשת: 20×20')
-    expect(gridRange(hanukkah.container).value).toBe('20')
-    expect(gridNumber(hanukkah.container).value).toBe('20')
+    const hanukkahSize = String(gridSizeForWordCount(HANUKKAH_WORDS.length))
+    expect(sizeLabel(hanukkah.container)).toBe(`גודל רשת: ${hanukkahSize}×${hanukkahSize}`)
+    expect(gridRange(hanukkah.container).value).toBe(hanukkahSize)
+    expect(gridNumber(hanukkah.container).value).toBe(hanukkahSize)
+    expect(bankWords(hanukkah.container)).toEqual([...HANUKKAH_WORDS])
     await settlePuzzle()
     expect(hanukkah.container.querySelector('.banner.error')).toBeNull()
-    expect(hanukkah.container.querySelector('.status')?.textContent).toContain('20×20')
-    expect(hanukkah.container.querySelector('.bank-count')?.textContent).toContain('24 / 50')
+    expect(hanukkah.container.querySelector('.status')?.textContent).toContain(
+      `${hanukkahSize}×${hanukkahSize}`,
+    )
+    expect(hanukkah.container.querySelector('.bank-count')?.textContent).toContain(
+      `${HANUKKAH_WORDS.length} / 50`,
+    )
 
     await chooseHoliday(hanukkah.container, 'רגיל')
     await staleThumb(gridRange(hanukkah.container), '8')
-    expect(sizeLabel(hanukkah.container)).toBe('גודל רשת: 20×20')
+    expect(sizeLabel(hanukkah.container)).toBe(`גודל רשת: ${hanukkahSize}×${hanukkahSize}`)
+    expect(bankWords(hanukkah.container)).toEqual([...HANUKKAH_WORDS])
     await hanukkah.unmount()
 
     const purim = await renderApp()
     await dragRange(gridRange(purim.container), '8')
     await chooseHoliday(purim.container, 'פורים')
     await staleThumb(gridRange(purim.container), '8')
-    expect(sizeLabel(purim.container)).toBe('גודל רשת: 20×20')
-    expect(gridRange(purim.container).value).toBe('20')
+    const purimSize = String(gridSizeForWordCount(PURIM_WORDS.length))
+    expect(sizeLabel(purim.container)).toBe(`גודל רשת: ${purimSize}×${purimSize}`)
+    expect(gridRange(purim.container).value).toBe(purimSize)
+    expect(bankWords(purim.container)).toEqual([...PURIM_WORDS])
     await settlePuzzle()
     expect(purim.container.querySelector('.banner.error')).toBeNull()
-    expect(purim.container.querySelector('.status')?.textContent).toContain('20×20')
+    expect(purim.container.querySelector('.status')?.textContent).toContain(
+      `${purimSize}×${purimSize}`,
+    )
+    expect(purim.container.querySelector('.bank-count')?.textContent).toContain(
+      `${PURIM_WORDS.length} / 50`,
+    )
     await chooseHoliday(purim.container, 'רגיל')
-    expect(sizeLabel(purim.container)).toBe('גודל רשת: 20×20')
+    expect(sizeLabel(purim.container)).toBe(`גודל רשת: ${purimSize}×${purimSize}`)
     await purim.unmount()
+  })
+
+  it('replaces the word bank when switching between חנוכה and פורים', async () => {
+    const app = await renderApp()
+    await chooseHoliday(app.container, 'חנוכה')
+    expect(bankWords(app.container)).toEqual([...HANUKKAH_WORDS])
+
+    await chooseHoliday(app.container, 'פורים')
+    expect(bankWords(app.container)).toEqual([...PURIM_WORDS])
+    expect(bankWords(app.container)).not.toContain('סופגנייה')
+    expect(bankWords(app.container)).not.toContain('סופגניה')
+    expect(bankWords(app.container)).not.toContain('חנוכה')
+    expect(bankWords(app.container)).not.toContain('שמש')
+
+    await chooseHoliday(app.container, 'חנוכה')
+    expect(bankWords(app.container)).toEqual([...HANUKKAH_WORDS])
+    expect(bankWords(app.container)).not.toContain('פורים')
+    expect(bankWords(app.container)).not.toContain('אסתר')
+    expect(bankWords(app.container)).not.toContain('סופגניה')
+    await app.unmount()
   })
 })
