@@ -49,6 +49,7 @@ import {
   holidayPackById,
   REGULAR_BANK,
   type HolidayPackId,
+  type RegularSnapshot,
 } from './data/holidayPacks.ts'
 import { catalogShortcutOpens, shortcutFocusFromTarget } from './images/catalogShortcut.ts'
 import { payloadFromSearch, type SharePayload } from './share/codec.ts'
@@ -125,6 +126,7 @@ export default function App() {
   const activeImageIds = holidayPackById(holidayPack).imageIds
   const closeCatalog = useCallback(() => setCatalogOpen(false), [])
   const actionRef = useRef<PuzzleRefresh>('settings')
+  const regularSnapshotRef = useRef<RegularSnapshot | null>(null)
   const bootedRef = useRef(false)
   const genIdRef = useRef(0)
   const genTimerRef = useRef<number | null>(null)
@@ -223,9 +225,17 @@ export default function App() {
   const selectHoliday = (id: HolidayPackId) => {
     if (id === holidayPack) return
     const next = applyHolidayPack(
-      { bank, fromPackId: holidayPack, noFinals },
+      {
+        bank,
+        fromPackId: holidayPack,
+        noFinals,
+        gridSize,
+        imageIds: activeImageIds,
+        regularSnapshot: regularSnapshotRef.current,
+      },
       id,
     )
+    regularSnapshotRef.current = next.regularSnapshot
     setHolidayPack(next.packId)
     setBank(next.bank)
     setNoFinals(next.noFinals)
@@ -233,6 +243,7 @@ export default function App() {
       packId: id,
       bank: next.bank,
       currentGrid: gridSize,
+      restoredGrid: next.gridSize,
     })
     if (nextSize !== gridSize) applyGridSize(nextSize)
   }
