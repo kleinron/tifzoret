@@ -59,13 +59,6 @@ export function messageBankFull(): string {
   return `עד ${MAX_BANK_WORDS} מילים במחסן`
 }
 
-export function messageRandomFillCapped(): string {
-  return `השלמה אקראית הופסקה במקסימום ${MAX_BANK_WORDS} מילים במחסן.`
-}
-
-/** Setting name. Fill runs when a puzzle is built, not as its own action. */
-export const AGE10_FILL_LABEL = 'מילוי אוטומטי'
-
 export function growBoardCtaLabel(size: number): string {
   return `הגדל לוח ל־${size}`
 }
@@ -187,10 +180,35 @@ export function capBankWords(
 
 /**
  * How many words a board of this side is built to hold.
- * Automatic fill uses the same target and stops once the bank reaches it.
+ * «הוסף K מילים» stays disabled once the bank reaches this count.
  */
 export function gridWordTarget(size: number): number {
   return Math.max(6, Math.round(size * 1.05))
+}
+
+/** One-shot «הוסף K מילים»: 3 while the board is 12 or smaller, 4 from 13 up. */
+export function fillBatchSize(gridSize: number): number {
+  return gridSize <= 12 ? 3 : 4
+}
+
+export function addFillWordsLabel(gridSize: number): string {
+  return `הוסף ${fillBatchSize(gridSize)} מילים`
+}
+
+/** Shown under the disabled fill button once the bank already matches the board. */
+export const FILL_AT_TARGET_REASON = 'כבר ביעד ללוח הזה — לא יתווספו מילים'
+
+/**
+ * Why the one-shot fill button is disabled, or null when a press can add words.
+ * A full bank is reported before the board-size target.
+ */
+export function fillWordsDisabledReason(
+  gridSize: number,
+  bankCount: number,
+): string | null {
+  if (bankCount >= MAX_BANK_WORDS) return messageBankFull()
+  if (bankCount >= gridWordTarget(gridSize)) return FILL_AT_TARGET_REASON
+  return null
 }
 
 /**
@@ -225,20 +243,6 @@ export function enlargedGridSizeForWords(
   const next = Math.min(MAX_GRID_SIZE, Math.max(forCount, forLength))
   if (next <= gridSize) return null
   return next
-}
-
-/** How many age-10 extras to request, never crossing the bank cap. */
-export function extraFillCount(size: number, existingCount: number): number {
-  const desired = Math.max(0, gridWordTarget(size) - existingCount)
-  const room = Math.max(0, MAX_BANK_WORDS - existingCount)
-  return Math.min(desired, room)
-}
-
-/** Hint under the age-10 toggle. K is extraFillCount; idle when nothing would be added. */
-export function age10FillHint(gridSize: number, existingCount: number): string {
-  const extra = extraFillCount(gridSize, existingCount)
-  if (extra <= 0) return 'כבר ביעד ללוח הזה — לא יתווספו מילים'
-  return `יוסיף עוד ${extra} מילים`
 }
 
 export function formatRemainingDraft(words: readonly string[]): string {

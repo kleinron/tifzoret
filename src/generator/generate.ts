@@ -9,12 +9,7 @@ import {
   MIN_WORD_LENGTH,
   parseWordList,
 } from './hebrew.ts'
-import {
-  capBankWords,
-  AGE10_FILL_LABEL,
-  extraFillCount,
-  MAX_BANK_WORDS,
-} from './wordLimits.ts'
+import { capBankWords, fillBatchSize } from './wordLimits.ts'
 import {
   BLOCKED_CELL,
   blockedCellKeys,
@@ -47,7 +42,6 @@ export type GenerateRequest = {
   userWords: readonly string[]
   directions: readonly DirectionId[]
   noFinalLetters: boolean
-  randomAge10Fill: boolean
   /**
    * How many pictures to block out. Each one covers a square from
    * {@link pictureBlockSize}. Omitted means 0 so older callers stay
@@ -74,7 +68,6 @@ export type GenerateRequest = {
   rng?: () => number
   maxPlacementAttempts?: number
   maxRepairAttempts?: number
-  corpus?: readonly string[]
 }
 
 export type GenerateSuccess = {
@@ -84,14 +77,12 @@ export type GenerateSuccess = {
   placements: Placement[]
   imageBlocks: ImageBlock[]
   attempts: number
-  extraWords: string[]
   skippedShort: string[]
   skippedFinals: string[]
   skippedContained: string[]
   skippedTooLong: string[]
   skippedMaxLength: string[]
   skippedOverCapacity: string[]
-  fillCappedAtMax: boolean
 }
 
 export type GenerateFailure = {
@@ -180,6 +171,23 @@ export function pickDiverseWords(
   tryTake((w) => !usedLen.has(w.length))
   tryTake(() => true)
   return picked
+}
+
+/** Exactly K corpus words for the one-shot bank button. K follows the board size. */
+export function pickBankFillWords(input: {
+  bank: readonly string[]
+  gridSize: number
+  noFinalLetters: boolean
+  rng?: () => number
+  corpus?: readonly string[]
+}): string[] {
+  return pickDiverseWords(input.corpus ?? KID_WORDS, {
+    exclude: new Set(input.bank),
+    count: fillBatchSize(input.gridSize),
+    gridSize: input.gridSize,
+    noFinalLetters: input.noFinalLetters,
+    rng: input.rng ?? Math.random,
+  })
 }
 
 type Slot = { row: number; col: number; direction: Direction }
@@ -413,24 +421,7 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
   }
 
   const rng = request.rng ?? mulberry32(request.seed ?? Date.now() >>> 0)
-  const corpus = request.corpus ?? KID_WORDS
-  const extraWords: string[] = []
   const bank = capped.kept.slice()
-  const fillCappedAtMax =
-    Boolean(request.randomAge10Fill) && bank.length >= MAX_BANK_WORDS
-
-  if (request.randomAge10Fill) {
-    const extras = pickDiverseWords(corpus, {
-      exclude: new Set(bank),
-      count: extraFillCount(size, bank.length),
-      gridSize: size,
-      noFinalLetters: request.noFinalLetters,
-      rng,
-    })
-    extraWords.push(...extras)
-    bank.push(...extras)
-  }
-
   const uniqueBank = [...new Set(bank)]
   const again = filterBankWords(uniqueBank, {
     noFinalLetters: request.noFinalLetters,
@@ -447,8 +438,8 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
 
   if (words.length === 0) {
     return fail(
-      'No words to place. Add words or enable automatic fill.',
-      `אין מילים לשיבוץ. הוסיפו מילים או הפעילו «${AGE10_FILL_LABEL}».`,
+      'No words to place. Add words.',
+      'אין מילים לשיבוץ. הוסיפו מילים.',
       skips,
     )
   }
@@ -514,8 +505,6 @@ export function generatePuzzle(request: GenerateRequest): GenerateResult {
       placements,
       imageBlocks: blocks,
       attempts: attempt,
-      extraWords,
-      fillCappedAtMax,
       ...skips,
     }
   }

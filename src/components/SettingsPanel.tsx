@@ -9,8 +9,8 @@ import {
 import { clampImageCount, maxImageBlocks } from '../generator/imageBlocks.ts'
 import type { FieldIssue } from '../generator/wordLimits.ts'
 import {
-  AGE10_FILL_LABEL,
-  age10FillHint,
+  addFillWordsLabel,
+  fillWordsDisabledReason,
   growBoardCtaLabel,
   MAX_BANK_WORDS,
   MAX_WORD_LENGTH,
@@ -199,8 +199,7 @@ export type SettingsPanelProps = {
   onGrowBoard: (size: number) => void
   addDisabled: boolean
   onRemoveWord: (word: string) => void
-  randomAge10: boolean
-  onRandomAge10: (value: boolean) => void
+  onAddFillWords: () => void
   noFinals: boolean
   onNoFinals: (value: boolean) => void
   gridSize: number
@@ -225,6 +224,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
   const invalid = props.issues.length > 0
   const maxImages = maxImageBlocks(props.gridSize)
   const imageCount = clampImageCount(props.imageCount, props.gridSize)
+  const fillReason = fillWordsDisabledReason(props.gridSize, props.bank.length)
 
   return (
     <aside className="panel settings no-print" aria-label="הגדרות">
@@ -324,19 +324,26 @@ export function SettingsPanel(props: SettingsPanelProps) {
           ) : (
             <p className="hint">מחסן המילים ריק עדיין.</p>
           )}
+          <div className="fill-words">
+            <button
+              type="button"
+              className="secondary"
+              onClick={props.onAddFillWords}
+              disabled={fillReason !== null}
+              aria-describedby={fillReason !== null ? 'fill-words-reason' : undefined}
+            >
+              {addFillWordsLabel(props.gridSize)}
+            </button>
+            {fillReason !== null ? (
+              <p id="fill-words-reason" className="hint">
+                {fillReason}
+              </p>
+            ) : null}
+          </div>
         </fieldset>
 
         <fieldset className="block">
           <legend>אפשרויות</legend>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={props.randomAge10}
-              onChange={(e) => props.onRandomAge10(e.target.checked)}
-            />
-            <span>{AGE10_FILL_LABEL}</span>
-          </label>
-          <p className="hint">{age10FillHint(props.gridSize, props.bank.length)}</p>
           <label className="toggle">
             <input
               type="checkbox"

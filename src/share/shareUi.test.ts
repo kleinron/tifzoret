@@ -10,7 +10,6 @@ const settings = {
   directions: DEFAULT_DIRECTION_IDS,
   gridSize: 12,
   fontSize: 18,
-  randomAge10: false,
   noFinals: false,
   imageCount: 1,
 }

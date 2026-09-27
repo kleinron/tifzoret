@@ -11,7 +11,12 @@ import {
   DIRECTIONS,
   type DirectionId,
 } from './generator/directions.ts'
-import { generatePuzzle, lettersAlong, PLACEMENT_FAILED_HE } from './generator/generate.ts'
+import {
+  generatePuzzle,
+  lettersAlong,
+  pickBankFillWords,
+  PLACEMENT_FAILED_HE,
+} from './generator/generate.ts'
 import {
   boardAfterFailedGenerate,
   imagePolicyForRefresh,
@@ -32,13 +37,13 @@ import {
   enlargedGridSizeForWords,
   ENLARGE_GRID_LABEL,
   ENLARGE_GRID_MAX_HINT,
+  fillWordsDisabledReason,
   formatRemainingDraft,
   looksLikeWordList,
   DEFAULT_GRID_SIZE,
   MAX_BANK_WORDS,
   MAX_GRID_SIZE,
   MAX_WORD_LENGTH,
-  messageRandomFillCapped,
   MIN_GRID_SIZE,
   planWordIntake,
 } from './generator/wordLimits.ts'
@@ -103,9 +108,6 @@ export default function App() {
   const [bank, setBank] = useState<string[]>(() =>
     boot?.words !== undefined ? boot.words : DEFAULT_BANK,
   )
-  const [randomAge10, setRandomAge10] = useState(
-    () => boot?.settings?.randomAge10 ?? false,
-  )
   const [noFinals, setNoFinals] = useState(
     () => boot?.settings?.noFinals ?? DEFAULT_NO_FINALS,
   )
@@ -146,7 +148,6 @@ export default function App() {
     gridSize,
     imageCount,
     noFinals,
-    randomAge10,
     bank,
     puzzleWords,
     imageBlocks,
@@ -157,7 +158,6 @@ export default function App() {
     gridSize,
     imageCount,
     noFinals,
-    randomAge10,
     bank,
     puzzleWords,
     imageBlocks,
@@ -187,6 +187,20 @@ export default function App() {
 
   const addWords = () => {
     mergeDraftIntoBank()
+  }
+
+  const addFillWords = () => {
+    const live = liveRef.current
+    if (fillWordsDisabledReason(live.gridSize, live.bank.length)) return
+    const picked = pickBankFillWords({
+      bank: live.bank,
+      gridSize: live.gridSize,
+      noFinalLetters: live.noFinals,
+    })
+    if (picked.length === 0) return
+    const result = planWordIntake(live.bank, picked, live.gridSize)
+    if (result.accepted.length === 0) return
+    setBank(result.nextBank)
   }
 
   const pasteWords = (text: string) => {
@@ -252,14 +266,13 @@ export default function App() {
 
   const runGenerate = useCallback((action: PuzzleRefresh) => {
     const live = liveRef.current
-    const plan = refreshWordPlan(action, live.bank, live.puzzleWords, live.randomAge10)
+    const plan = refreshWordPlan(action, live.bank, live.puzzleWords)
     const imagePolicy = imagePolicyForRefresh(action, live.imageBlocks.length)
     const snapshot = {
       size: live.gridSize,
       userWords: plan.words,
       directions: [...live.enabledDirs],
       noFinalLetters: live.noFinals,
-      randomAge10Fill: plan.randomAge10Fill,
       imageCount: live.imageCount,
       imagePolicy,
       pinnedImageBlocks: imagePolicy === 'roll' ? undefined : live.imageBlocks,
@@ -313,12 +326,6 @@ export default function App() {
           `לא נוספו כי מחסן המילים מוגבל ל־${MAX_BANK_WORDS} מילים: ${result.skippedOverCapacity.join(', ')}`,
         )
       }
-      if (result.fillCappedAtMax) {
-        skipped.push(messageRandomFillCapped())
-      }
-      if (result.extraWords.length) {
-        skipped.push(`נוספו ${result.extraWords.length} מילים`)
-      }
       setNotes(skipped)
       setGrid(result.grid)
       setImageBlocks(result.imageBlocks)
@@ -354,7 +361,6 @@ export default function App() {
     gridSize,
     imageCount,
     bank,
-    randomAge10,
     noFinals,
     holidayPack,
   })
@@ -409,7 +415,6 @@ export default function App() {
               directions: [...enabledDirs],
               gridSize,
               fontSize,
-              randomAge10,
               noFinals,
               imageCount,
             }}
@@ -437,8 +442,7 @@ export default function App() {
           onGrowBoard={growBoard}
           addDisabled={!validation.canAdd}
           onRemoveWord={removeWord}
-          randomAge10={randomAge10}
-          onRandomAge10={setRandomAge10}
+          onAddFillWords={addFillWords}
           noFinals={noFinals}
           onNoFinals={setNoFinals}
           gridSize={gridSize}
