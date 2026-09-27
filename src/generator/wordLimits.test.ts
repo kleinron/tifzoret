@@ -6,14 +6,16 @@ import { DIRECTIONS } from './directions.ts'
 import { generatePuzzle } from './generate.ts'
 import { filterBankWords, HEBREW_LETTERS } from './hebrew.ts'
 import {
+  addFillWordsLabel,
   capBankWords,
   editorValidation,
-  AGE10_FILL_LABEL,
-  age10FillHint,
   ENLARGE_GRID_LABEL,
   ENLARGE_GRID_MAX_HINT,
   enlargedGridSizeForWords,
-  extraFillCount,
+  FILL_HOLIDAY_REASON,
+  fillBatchSize,
+  fillWordsDisabledReason,
+  fillWordsToAdd,
   growBoardCtaLabel,
   looksLikeWordList,
   MAX_BANK_WORDS,
@@ -79,9 +81,8 @@ describe('word length cap (16)', () => {
 })
 
 describe('board size for a word count', () => {
-  it('uses the same word target as automatic fill', () => {
+  it('uses the word target the fill button stops at', () => {
     expect(gridWordTarget(12)).toBe(Math.max(6, Math.round(12 * 1.05)))
-    expect(extraFillCount(12, 1)).toBe(Math.max(0, gridWordTarget(12) - 1))
     expect(gridSizeForWordCount(gridWordTarget(12))).toBe(12)
   })
 
@@ -182,23 +183,33 @@ describe('max 50 words in the bank', () => {
     expect(capped.skippedOverCapacity).toEqual(words.slice(50))
   })
 
-  it('extra random fill never requests more than remaining bank slots', () => {
-    expect(extraFillCount(12, 0)).toBeGreaterThan(0)
-    expect(extraFillCount(12, MAX_BANK_WORDS)).toBe(0)
-    expect(extraFillCount(20, MAX_BANK_WORDS - 1)).toBeLessThanOrEqual(1)
+  it('offers a one-shot batch of 3 words up to 12 and 4 from 13', () => {
+    expect(fillBatchSize(8)).toBe(3)
+    expect(fillBatchSize(12)).toBe(3)
+    expect(fillBatchSize(13)).toBe(4)
+    expect(fillBatchSize(20)).toBe(4)
+    expect(addFillWordsLabel(12)).toBe('הוסף 3 מילים')
+    expect(addFillWordsLabel(16)).toBe('הוסף 4 מילים')
   })
 
-  it('describes how many age-10 words Generate would add, or that the board is already full', () => {
-    const extra = extraFillCount(12, 1)
-    expect(extra).toBeGreaterThan(0)
-    expect(age10FillHint(12, 1)).toBe(
-      `יוסיף עוד ${extra} מילים`,
-    )
-    expect(age10FillHint(12, 13)).toBe('כבר ביעד ללוח הזה — לא יתווספו מילים')
-    expect(age10FillHint(12, MAX_BANK_WORDS)).toBe(
-      'כבר ביעד ללוח הזה — לא יתווספו מילים',
-    )
-    expect(age10FillHint(12, 1)).not.toMatch(/בלי רשת|offline|השלם אקראי/)
+  it('adds a full batch until the bank is near 50, then only the slots left', () => {
+    expect(fillWordsToAdd(12, 1)).toBe(3)
+    expect(fillWordsToAdd(13, 1)).toBe(4)
+    expect(fillWordsToAdd(12, MAX_BANK_WORDS - 2)).toBe(2)
+    expect(fillWordsToAdd(16, MAX_BANK_WORDS - 1)).toBe(1)
+    expect(fillWordsToAdd(12, MAX_BANK_WORDS)).toBe(0)
+  })
+
+  it('disables the fill button at 50 and while a holiday pack is active', () => {
+    expect(fillWordsDisabledReason(12, 1)).toBeNull()
+    expect(fillWordsDisabledReason(12, gridWordTarget(12))).toBeNull()
+    expect(fillWordsDisabledReason(20, MAX_BANK_WORDS - 1)).toBeNull()
+    expect(fillWordsDisabledReason(12, MAX_BANK_WORDS)).toBe(messageBankFull())
+    expect(messageBankFull()).toBe('עד 50 מילים במחסן')
+    expect(fillWordsDisabledReason(12, 1, true)).toBe(FILL_HOLIDAY_REASON)
+    expect(FILL_HOLIDAY_REASON).toBe('לא זמין בחבילת חג')
+    expect(fillWordsDisabledReason(12, MAX_BANK_WORDS, true)).toBe(FILL_HOLIDAY_REASON)
+    expect(FILL_HOLIDAY_REASON).not.toMatch(/מילוי אוטומטי/)
   })
 })
 
@@ -223,7 +234,6 @@ describe('paste / generate helpers', () => {
       userWords: seed,
       directions: ['rtl'],
       noFinalLetters: false,
-      randomAge10Fill: false,
       seed: 1,
       maxPlacementAttempts: 1,
     })
@@ -235,21 +245,18 @@ describe('paste / generate helpers', () => {
     }
   })
 
-  it('generatePuzzle random fill does not grow a full 50-word bank', () => {
+  it('generatePuzzle does not grow a full 50-word bank', () => {
     const result = generatePuzzle({
       size: 12,
       userWords: manyWords(MAX_BANK_WORDS),
       directions: ['rtl'],
       noFinalLetters: false,
-      randomAge10Fill: true,
       seed: 2,
       maxPlacementAttempts: 1,
     })
     expect(result.skippedOverCapacity).toEqual([])
     if (result.ok) {
       expect(result.words.length).toBeLessThanOrEqual(MAX_BANK_WORDS)
-      expect(result.extraWords).toEqual([])
-      expect(result.fillCappedAtMax).toBe(true)
     } else {
       expect(result.skippedMaxLength).toEqual([])
     }
@@ -270,8 +277,7 @@ describe('SettingsPanel validation UI', () => {
     bankLimit: MAX_BANK_WORDS,
     onGrowBoard: () => undefined,
     onRemoveWord: () => undefined,
-    randomAge10: false,
-    onRandomAge10: () => undefined,
+    onAddFillWords: () => undefined,
     noFinals: false,
     onNoFinals: () => undefined,
     gridSize: 12,
@@ -305,8 +311,9 @@ describe('SettingsPanel validation UI', () => {
     expect(html).toContain('1 / 50 במחסן מילים')
     expect(html).toContain('עד 16 אותיות')
     expect(html).toContain('עד 50 מילים במחסן')
-    expect(html).toContain(AGE10_FILL_LABEL)
-    expect(html).toContain(age10FillHint(12, 1))
+    expect(html).toContain('הוסף 3 מילים')
+    expect(html).toMatch(/<button type="button" class="secondary">הוסף 3 מילים<\/button>/)
+    expect(html).not.toContain('מילוי אוטומטי')
     expect(html).not.toContain('השלם אקראי')
     expect(html).not.toContain('בלי רשת')
     expect(html).toContain('תמונות על הלוח: 1')
@@ -323,6 +330,61 @@ describe('SettingsPanel validation UI', () => {
     expect(html).not.toContain('←')
     expect(html).not.toContain('↙')
     expect(html).not.toContain('>מימין לשמאל<')
+  })
+
+  it('disables הוסף K מילים at 50 with the same bank-full reason as add-to-bank', () => {
+    const html = renderToStaticMarkup(
+      createElement(SettingsPanel, {
+        ...base,
+        bank: manyWords(MAX_BANK_WORDS),
+        issues: [],
+        addDisabled: true,
+      }),
+    )
+    expect(html).toContain('הוסף 3 מילים')
+    expect(html).toContain('fill-words-reason')
+    expect(html).toContain(messageBankFull())
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>הוסף 3 מילים/)
+    expect(html).not.toContain('מילוי אוטומטי')
+    expect(html).not.toMatch(/<button[^>]*class="primary"[^>]*>הוסף 3 מילים/)
+  })
+
+  it('keeps הוסף K מילים enabled near the cap and disables it for a holiday pack', () => {
+    const nearCap = renderToStaticMarkup(
+      createElement(SettingsPanel, {
+        ...base,
+        bank: manyWords(MAX_BANK_WORDS - 2),
+        issues: [],
+        addDisabled: true,
+      }),
+    )
+    expect(nearCap).toMatch(/<button type="button" class="secondary">הוסף 3 מילים<\/button>/)
+    expect(nearCap).not.toContain('fill-words-reason')
+
+    const holiday = renderToStaticMarkup(
+      createElement(SettingsPanel, {
+        ...base,
+        holidayPackActive: true,
+        issues: [],
+        addDisabled: true,
+      }),
+    )
+    expect(holiday).toContain(FILL_HOLIDAY_REASON)
+    expect(holiday).toMatch(/<button[^>]*disabled[^>]*>הוסף 3 מילים/)
+  })
+
+  it('labels the fill button הוסף 4 מילים from board size 13', () => {
+    const html = renderToStaticMarkup(
+      createElement(SettingsPanel, {
+        ...base,
+        gridSize: 13,
+        bank: ['שמש'],
+        issues: [],
+        addDisabled: true,
+      }),
+    )
+    expect(html).toContain('הוסף 4 מילים')
+    expect(html).not.toContain('fill-words-reason')
   })
 
   it('renders the 16-letter rejection in red without a grow CTA and disables add', () => {

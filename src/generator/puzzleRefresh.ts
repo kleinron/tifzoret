@@ -33,19 +33,17 @@ export function imagePolicyForRefresh(
 }
 
 /**
- * Words for this build. Reshuffle reuses the puzzle already on screen
- * (no new age-10 draw). Anything else starts from the word bank.
+ * Words for this build. Reshuffle reuses the puzzle already on screen.
+ * Anything else starts from the word bank. Generate does not add words.
  */
 export function refreshWordPlan(
   action: PuzzleRefresh,
   bank: readonly string[],
   puzzleWords: readonly string[],
-  randomAge10: boolean,
-): { words: readonly string[]; randomAge10Fill: boolean } {
+): { words: readonly string[] } {
   const freezePuzzle = action === 'reshuffle' && puzzleWords.length > 0
   return {
     words: freezePuzzle ? puzzleWords : bank,
-    randomAge10Fill: freezePuzzle ? false : randomAge10,
   }
 }
 
@@ -58,7 +56,6 @@ export function puzzleSettingsKey(input: {
   gridSize: number
   imageCount: number
   bank: readonly string[]
-  randomAge10: boolean
   noFinals: boolean
   /** Active picture catalog. A pack swap rebuilds even when words and checkboxes do not. */
   holidayPack?: string
@@ -68,7 +65,6 @@ export function puzzleSettingsKey(input: {
     String(input.gridSize),
     String(input.imageCount),
     input.bank.join('\u0001'),
-    input.randomAge10 ? '1' : '0',
     input.noFinals ? '1' : '0',
     input.holidayPack ?? 'regular',
   ].join('\u0002')

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { KID_WORDS } from '../data/kidWords.ts'
+import { fillWordsToAdd, MAX_BANK_WORDS } from './wordLimits.ts'
 import { DEFAULT_DIRECTION_IDS, DIRECTIONS, directionArrowRotation } from './directions.ts'
 import {
   generatePuzzle,
+  pickBankFillWords,
   pickDiverseWords,
   PLACEMENT_FAILED_HE,
   type GenerateSuccess,
@@ -143,7 +145,6 @@ describe('generatePuzzle uniqueness', () => {
         userWords: ['שמש', 'ירח', 'כוכב', 'פרח', 'ספר', 'כדור', 'חתול', 'בית'],
         directions: [...DEFAULT_DIRECTION_IDS],
         noFinalLetters: false,
-        randomAge10Fill: false,
         seed: 42,
       }),
     )
@@ -177,7 +178,6 @@ describe('generatePuzzle uniqueness', () => {
           userWords: words,
           directions: DIRECTIONS.map((d) => d.id),
           noFinalLetters: false,
-          randomAge10Fill: false,
           seed,
         }),
       )
@@ -193,7 +193,6 @@ describe('generatePuzzle uniqueness', () => {
       userWords: ['שמש', 'ירח', 'ספר'],
       directions: [...DEFAULT_DIRECTION_IDS] as const,
       noFinalLetters: false,
-      randomAge10Fill: false,
       seed: 77,
     }
     const a = success(generatePuzzle({ ...request }))
@@ -209,7 +208,6 @@ describe('generatePuzzle uniqueness', () => {
         userWords: ['שלום', 'שמש', 'ירח', 'כוכב', 'פרח'],
         directions: [...DEFAULT_DIRECTION_IDS],
         noFinalLetters: true,
-        randomAge10Fill: false,
         seed: 3,
       }),
     )
@@ -222,30 +220,17 @@ describe('generatePuzzle uniqueness', () => {
     }
   })
 
-  it('adds diverse age-10 words from the bundled corpus', () => {
+  it('places only the words it was given', () => {
     const result = success(
       generatePuzzle({
         size: 12,
         userWords: ['שמש'],
         directions: [...DEFAULT_DIRECTION_IDS],
         noFinalLetters: true,
-        randomAge10Fill: true,
         seed: 11,
       }),
     )
-    expect(result.extraWords.length).toBeGreaterThan(3)
-    expect(result.words).toContain('שמש')
-    for (const extra of result.extraWords) {
-      expect(KID_WORDS).toContain(extra)
-      expect(hasFinalLetter(extra)).toBe(false)
-    }
-    expect(
-      uniquenessViolations(
-        result.grid,
-        result.words,
-        DIRECTIONS.filter((d) => DEFAULT_DIRECTION_IDS.includes(d.id)),
-      ),
-    ).toEqual([])
+    expect(result.words).toEqual(['שמש'])
   })
 
   it('fails clearly when a word is longer than the grid', () => {
@@ -254,7 +239,6 @@ describe('generatePuzzle uniqueness', () => {
       userWords: ['סופרקאליפרגיל'],
       directions: [...DEFAULT_DIRECTION_IDS],
       noFinalLetters: false,
-      randomAge10Fill: false,
       seed: 1,
     })
     expect(result.ok).toBe(false)
@@ -269,7 +253,6 @@ describe('generatePuzzle uniqueness', () => {
       userWords: ['אבגדהוזחטיכלמנסעפ'],
       directions: [...DEFAULT_DIRECTION_IDS],
       noFinalLetters: false,
-      randomAge10Fill: false,
       seed: 1,
     })
     expect(result.ok).toBe(false)
@@ -285,7 +268,6 @@ describe('generatePuzzle uniqueness', () => {
         userWords: ['שמש', 'ירח', 'כוכב', 'פרח', 'ספר', 'כדור', 'חתול', 'בית'],
         directions: [...DEFAULT_DIRECTION_IDS],
         noFinalLetters: false,
-        randomAge10Fill: false,
         imageCount: 2,
         seed: 42,
       }),
@@ -321,7 +303,6 @@ describe('generatePuzzle uniqueness', () => {
       userWords: ['שמש', 'ירח', 'ספר', 'פרח'],
       directions: [...DEFAULT_DIRECTION_IDS] as const,
       noFinalLetters: false,
-      randomAge10Fill: false,
       imageCount: 2,
       seed: 99,
     }
@@ -338,7 +319,6 @@ describe('generatePuzzle uniqueness', () => {
         userWords: ['שמש', 'ירח'],
         directions: [...DEFAULT_DIRECTION_IDS],
         noFinalLetters: false,
-        randomAge10Fill: false,
         imageCount: 0,
         seed: 5,
       }),
@@ -355,7 +335,6 @@ describe('generatePuzzle uniqueness', () => {
       userWords: ['שמש'],
       directions: [...DEFAULT_DIRECTION_IDS],
       noFinalLetters: false,
-      randomAge10Fill: false,
       imageCount: 5,
       seed: 1,
     })
@@ -370,7 +349,6 @@ describe('generatePuzzle uniqueness', () => {
       userWords: ['שמש'],
       directions: [...DEFAULT_DIRECTION_IDS],
       noFinalLetters: false,
-      randomAge10Fill: false,
       imageCount: 6,
       seed: 1,
     })
@@ -388,7 +366,6 @@ describe('generatePuzzle uniqueness', () => {
         userWords: ['שמש'],
         directions: [...DEFAULT_DIRECTION_IDS],
         noFinalLetters: false,
-        randomAge10Fill: false,
         imageCount: 3,
         seed: 1,
       }),
@@ -419,7 +396,6 @@ describe('generatePuzzle uniqueness', () => {
       userWords: ['שמש', 'ירח', 'ספר', 'פרח', 'כדור'],
       directions: [...DEFAULT_DIRECTION_IDS],
       noFinalLetters: false,
-      randomAge10Fill: false,
       imageCount: 2,
       imagePolicy: 'keep' as const,
       pinnedImageBlocks: pinned,
@@ -451,7 +427,6 @@ describe('generatePuzzle uniqueness', () => {
         userWords: ['שמש', 'ירח', 'ספר'],
         directions: [...DEFAULT_DIRECTION_IDS],
         noFinalLetters: false,
-        randomAge10Fill: false,
         imageCount: 2,
         imagePolicy: 'adapt',
         pinnedImageBlocks: pinned,
@@ -468,7 +443,6 @@ describe('generatePuzzle uniqueness', () => {
         userWords: ['שמש', 'ירח'],
         directions: ['rtl'],
         noFinalLetters: false,
-        randomAge10Fill: false,
         imageCount: 1,
         imagePolicy: 'adapt',
         pinnedImageBlocks: [{ imageId: 'fish', row: 6, col: 6 }],
@@ -489,7 +463,6 @@ describe('generatePuzzle uniqueness', () => {
         userWords: ['שמש'],
         directions: ['rtl'],
         noFinalLetters: false,
-        randomAge10Fill: false,
         imageCount,
         maxPlacementAttempts: 0,
         seed: 1,
@@ -509,7 +482,6 @@ describe('generatePuzzle uniqueness', () => {
           userWords: ['שמש', 'ירח', 'ספר'],
           directions: [...DEFAULT_DIRECTION_IDS],
           noFinalLetters: false,
-          randomAge10Fill: false,
           imageCount: 3,
           seed,
         }),
@@ -523,7 +495,6 @@ describe('generatePuzzle uniqueness', () => {
           userWords: ['שמש', 'ירח', 'ספר'],
           directions: [...DEFAULT_DIRECTION_IDS],
           noFinalLetters: false,
-          randomAge10Fill: false,
           imageCount: 3,
           imagePolicy: 'adapt',
           pinnedImageBlocks: [{ imageId: 'cat', row: 0, col: 0 }],
@@ -547,7 +518,6 @@ describe('generatePuzzle uniqueness', () => {
           userWords: ['שמש', 'ירח', 'ספר'],
           directions: [...DEFAULT_DIRECTION_IDS],
           noFinalLetters: false,
-          randomAge10Fill: false,
           imageCount,
           seed: 4,
         }),
@@ -563,7 +533,6 @@ describe('generatePuzzle uniqueness', () => {
       userWords: ['שמש'],
       directions: [],
       noFinalLetters: false,
-      randomAge10Fill: false,
       seed: 1,
     })
     expect(result.ok).toBe(false)
@@ -596,5 +565,51 @@ describe('kid corpus', () => {
       false,
     )
     for (const w of picked) expect(hasFinalLetter(w)).toBe(false)
+  })
+
+  it('pickBankFillWords adds exactly 3 or 4 corpus words for the board size', () => {
+    const small = pickBankFillWords({
+      bank: ['שמש'],
+      gridSize: 12,
+      noFinalLetters: true,
+      rng: mulberry32(11),
+    })
+    const large = pickBankFillWords({
+      bank: ['שמש'],
+      gridSize: 13,
+      noFinalLetters: true,
+      rng: mulberry32(11),
+    })
+    expect(small).toHaveLength(3)
+    expect(large).toHaveLength(4)
+    for (const word of [...small, ...large]) {
+      expect(KID_WORDS).toContain(word)
+      expect(hasFinalLetter(word)).toBe(false)
+      expect(word).not.toBe('שמש')
+    }
+  })
+
+  it('pickBankFillWords adds only the slots left when the bank is near 50', () => {
+    const bank = KID_WORDS.slice(0, MAX_BANK_WORDS - 2)
+    expect(fillWordsToAdd(12, bank.length)).toBe(2)
+    const picked = pickBankFillWords({
+      bank,
+      gridSize: 12,
+      noFinalLetters: false,
+      rng: mulberry32(3),
+    })
+    expect(picked).toHaveLength(2)
+    for (const word of picked) {
+      expect(KID_WORDS).toContain(word)
+      expect(bank).not.toContain(word)
+    }
+    expect(
+      pickBankFillWords({
+        bank: KID_WORDS.slice(0, MAX_BANK_WORDS),
+        gridSize: 16,
+        noFinalLetters: false,
+        rng: mulberry32(3),
+      }),
+    ).toEqual([])
   })
 })

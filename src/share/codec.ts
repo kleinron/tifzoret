@@ -22,7 +22,7 @@
  *     8 bits direction mask (bit i = DIRECTION_IDS[i])
  *     4 bits gridSize - 8          (8–20)
  *     5 bits fontSize - 12         (12–28)
- *     1 bit  randomAge10
+ *     1 bit  legacy automatic-fill (ignored; new links write 0)
  *     1 bit  noFinals
  *     5 bits imageCount (0–31)     version 2
  *     1 bit  reserved (0)          version 1 only — imageCount decodes as 0
@@ -94,7 +94,6 @@ export type ShareSettings = {
   directions: readonly DirectionId[]
   gridSize: number
   fontSize: number
-  randomAge10: boolean
   noFinals: boolean
   /** Pictures to place. Origins are not shared; they re-roll on generate. */
   imageCount: number
@@ -233,7 +232,8 @@ export function encodeSharePayload(payload: SharePayload): string {
     w.write(maskFromDirections(settings.directions), 8)
     w.write(clampInt(settings.gridSize, MIN_GRID_SIZE, MAX_GRID_SIZE) - MIN_GRID_SIZE, 4)
     w.write(clampInt(settings.fontSize, MIN_FONT_SIZE, MAX_FONT_SIZE) - MIN_FONT_SIZE, 5)
-    w.write(settings.randomAge10 ? 1 : 0, 1)
+    // Kept so older links stay aligned. The preference itself is gone.
+    w.write(0, 1)
     w.write(settings.noFinals ? 1 : 0, 1)
     w.write(clampInt(settings.imageCount, 0, MAX_SHARE_IMAGE_COUNT), 5)
   }
@@ -274,13 +274,13 @@ export function decodeSharePayload(text: string): SharePayload | null {
     const mask = r.read(8)
     const gridOff = r.read(4)
     const fontOff = r.read(5)
-    const randomAge10 = r.read(1)
+    const legacyFill = r.read(1)
     const noFinals = r.read(1)
     if (
       mask === null ||
       gridOff === null ||
       fontOff === null ||
-      randomAge10 === null ||
+      legacyFill === null ||
       noFinals === null
     ) {
       return null
@@ -298,7 +298,6 @@ export function decodeSharePayload(text: string): SharePayload | null {
       directions: directionsFromMask(mask),
       gridSize: clampInt(gridOff + MIN_GRID_SIZE, MIN_GRID_SIZE, MAX_GRID_SIZE),
       fontSize: clampInt(fontOff + MIN_FONT_SIZE, MIN_FONT_SIZE, MAX_FONT_SIZE),
-      randomAge10: randomAge10 === 1,
       noFinals: noFinals === 1,
       imageCount,
     }
