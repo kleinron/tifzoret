@@ -116,7 +116,6 @@ function puzzleSettings(
     directions,
     gridSize,
     fontSize: 18,
-    randomAge10: false,
     noFinals: false,
     imageCount,
   }

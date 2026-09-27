@@ -24,22 +24,18 @@ describe('puzzle refresh rules', () => {
     expect(imagePolicyForRefresh('settings', 0)).toBe('adapt')
   })
 
-  it('reshuffle reuses placed words and does not draw a new age-10 set', () => {
-    expect(refreshWordPlan('reshuffle', ['שמש'], ['שמש', 'ירח'], true)).toEqual({
+  it('reshuffle reuses placed words and settings start from the bank', () => {
+    expect(refreshWordPlan('reshuffle', ['שמש'], ['שמש', 'ירח'])).toEqual({
       words: ['שמש', 'ירח'],
-      randomAge10Fill: false,
     })
-    expect(refreshWordPlan('reshuffle', ['שמש'], [], true)).toEqual({
+    expect(refreshWordPlan('reshuffle', ['שמש'], [])).toEqual({
       words: ['שמש'],
-      randomAge10Fill: true,
     })
-    expect(refreshWordPlan('settings', ['שמש'], ['שמש', 'ירח'], false)).toEqual({
+    expect(refreshWordPlan('settings', ['שמש'], ['שמש', 'ירח'])).toEqual({
       words: ['שמש'],
-      randomAge10Fill: false,
     })
-    expect(refreshWordPlan('settings', ['שמש', 'פרח'], ['שמש'], true)).toEqual({
+    expect(refreshWordPlan('settings', ['שמש', 'פרח'], ['שמש'])).toEqual({
       words: ['שמש', 'פרח'],
-      randomAge10Fill: true,
     })
   })
 
@@ -49,7 +45,6 @@ describe('puzzle refresh rules', () => {
       gridSize: 12,
       imageCount: 1,
       bank: ['שמש', 'ירח'],
-      randomAge10: false,
       noFinals: false,
     }
     expect(puzzleSettingsKey(base)).toBe(puzzleSettingsKey({ ...base, directions: ['rtl', 'ttb'] }))
@@ -57,9 +52,6 @@ describe('puzzle refresh rules', () => {
     expect(puzzleSettingsKey(base)).not.toBe(puzzleSettingsKey({ ...base, imageCount: 0 }))
     expect(puzzleSettingsKey(base)).not.toBe(
       puzzleSettingsKey({ ...base, bank: ['שמש'] }),
-    )
-    expect(puzzleSettingsKey(base)).not.toBe(
-      puzzleSettingsKey({ ...base, randomAge10: true }),
     )
     expect(puzzleSettingsKey(base)).not.toBe(puzzleSettingsKey({ ...base, noFinals: true }))
     expect(puzzleSettingsKey(base)).not.toBe(
