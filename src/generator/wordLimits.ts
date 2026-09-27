@@ -178,10 +178,7 @@ export function capBankWords(
   }
 }
 
-/**
- * How many words a board of this side is built to hold.
- * «הוסף K מילים» stays disabled once the bank reaches this count.
- */
+/** How many words a board of this side is built to hold. */
 export function gridWordTarget(size: number): number {
   return Math.max(6, Math.round(size * 1.05))
 }
@@ -195,19 +192,29 @@ export function addFillWordsLabel(gridSize: number): string {
   return `הוסף ${fillBatchSize(gridSize)} מילים`
 }
 
-/** Shown under the disabled fill button once the bank already matches the board. */
-export const FILL_AT_TARGET_REASON = 'כבר ביעד ללוח הזה — לא יתווספו מילים'
+/** Shown under the disabled fill button while חנוכה or פורים is selected. */
+export const FILL_HOLIDAY_REASON = 'לא זמין בחבילת חג'
+
+/**
+ * How many corpus words this press may add.
+ * A full K when the bank has room; otherwise only the slots left under 50.
+ */
+export function fillWordsToAdd(gridSize: number, bankCount: number): number {
+  const room = Math.max(0, MAX_BANK_WORDS - bankCount)
+  return Math.min(fillBatchSize(gridSize), room)
+}
 
 /**
  * Why the one-shot fill button is disabled, or null when a press can add words.
- * A full bank is reported before the board-size target.
+ * A holiday pack blocks the button even when the bank still has room.
  */
 export function fillWordsDisabledReason(
   gridSize: number,
   bankCount: number,
+  holidayPackActive = false,
 ): string | null {
-  if (bankCount >= MAX_BANK_WORDS) return messageBankFull()
-  if (bankCount >= gridWordTarget(gridSize)) return FILL_AT_TARGET_REASON
+  if (holidayPackActive) return FILL_HOLIDAY_REASON
+  if (fillWordsToAdd(gridSize, bankCount) === 0) return messageBankFull()
   return null
 }
 

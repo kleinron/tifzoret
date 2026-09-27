@@ -12,9 +12,10 @@ import {
   ENLARGE_GRID_LABEL,
   ENLARGE_GRID_MAX_HINT,
   enlargedGridSizeForWords,
-  FILL_AT_TARGET_REASON,
+  FILL_HOLIDAY_REASON,
   fillBatchSize,
   fillWordsDisabledReason,
+  fillWordsToAdd,
   growBoardCtaLabel,
   looksLikeWordList,
   MAX_BANK_WORDS,
@@ -191,14 +192,24 @@ describe('max 50 words in the bank', () => {
     expect(addFillWordsLabel(16)).toBe('הוסף 4 מילים')
   })
 
-  it('disables the fill button at the board target and at the bank cap', () => {
+  it('adds a full batch until the bank is near 50, then only the slots left', () => {
+    expect(fillWordsToAdd(12, 1)).toBe(3)
+    expect(fillWordsToAdd(13, 1)).toBe(4)
+    expect(fillWordsToAdd(12, MAX_BANK_WORDS - 2)).toBe(2)
+    expect(fillWordsToAdd(16, MAX_BANK_WORDS - 1)).toBe(1)
+    expect(fillWordsToAdd(12, MAX_BANK_WORDS)).toBe(0)
+  })
+
+  it('disables the fill button at 50 and while a holiday pack is active', () => {
     expect(fillWordsDisabledReason(12, 1)).toBeNull()
-    expect(fillWordsDisabledReason(12, gridWordTarget(12) - 1)).toBeNull()
-    expect(fillWordsDisabledReason(12, gridWordTarget(12))).toBe(FILL_AT_TARGET_REASON)
-    expect(FILL_AT_TARGET_REASON).toBe('כבר ביעד ללוח הזה — לא יתווספו מילים')
+    expect(fillWordsDisabledReason(12, gridWordTarget(12))).toBeNull()
+    expect(fillWordsDisabledReason(20, MAX_BANK_WORDS - 1)).toBeNull()
     expect(fillWordsDisabledReason(12, MAX_BANK_WORDS)).toBe(messageBankFull())
-    expect(fillWordsDisabledReason(20, MAX_BANK_WORDS - 1)).toBe(FILL_AT_TARGET_REASON)
-    expect(FILL_AT_TARGET_REASON).not.toMatch(/בלי רשת|offline|השלם אקראי|מילוי אוטומטי/)
+    expect(messageBankFull()).toBe('עד 50 מילים במחסן')
+    expect(fillWordsDisabledReason(12, 1, true)).toBe(FILL_HOLIDAY_REASON)
+    expect(FILL_HOLIDAY_REASON).toBe('לא זמין בחבילת חג')
+    expect(fillWordsDisabledReason(12, MAX_BANK_WORDS, true)).toBe(FILL_HOLIDAY_REASON)
+    expect(FILL_HOLIDAY_REASON).not.toMatch(/מילוי אוטומטי/)
   })
 })
 
@@ -321,21 +332,45 @@ describe('SettingsPanel validation UI', () => {
     expect(html).not.toContain('>מימין לשמאל<')
   })
 
-  it('disables הוסף K מילים with a short reason once the bank is at the board target', () => {
+  it('disables הוסף K מילים at 50 with the same bank-full reason as add-to-bank', () => {
     const html = renderToStaticMarkup(
       createElement(SettingsPanel, {
         ...base,
-        bank: manyWords(gridWordTarget(12)),
+        bank: manyWords(MAX_BANK_WORDS),
         issues: [],
         addDisabled: true,
       }),
     )
     expect(html).toContain('הוסף 3 מילים')
     expect(html).toContain('fill-words-reason')
-    expect(html).toContain(FILL_AT_TARGET_REASON)
+    expect(html).toContain(messageBankFull())
     expect(html).toMatch(/<button[^>]*disabled[^>]*>הוסף 3 מילים/)
     expect(html).not.toContain('מילוי אוטומטי')
     expect(html).not.toMatch(/<button[^>]*class="primary"[^>]*>הוסף 3 מילים/)
+  })
+
+  it('keeps הוסף K מילים enabled near the cap and disables it for a holiday pack', () => {
+    const nearCap = renderToStaticMarkup(
+      createElement(SettingsPanel, {
+        ...base,
+        bank: manyWords(MAX_BANK_WORDS - 2),
+        issues: [],
+        addDisabled: true,
+      }),
+    )
+    expect(nearCap).toMatch(/<button type="button" class="secondary">הוסף 3 מילים<\/button>/)
+    expect(nearCap).not.toContain('fill-words-reason')
+
+    const holiday = renderToStaticMarkup(
+      createElement(SettingsPanel, {
+        ...base,
+        holidayPackActive: true,
+        issues: [],
+        addDisabled: true,
+      }),
+    )
+    expect(holiday).toContain(FILL_HOLIDAY_REASON)
+    expect(holiday).toMatch(/<button[^>]*disabled[^>]*>הוסף 3 מילים/)
   })
 
   it('labels the fill button הוסף 4 מילים from board size 13', () => {

@@ -200,6 +200,8 @@ export type SettingsPanelProps = {
   addDisabled: boolean
   onRemoveWord: (word: string) => void
   onAddFillWords: () => void
+  /** חנוכה or פורים. «רגיל» leaves the one-shot fill button available. */
+  holidayPackActive?: boolean
   noFinals: boolean
   onNoFinals: (value: boolean) => void
   gridSize: number
@@ -224,7 +226,11 @@ export function SettingsPanel(props: SettingsPanelProps) {
   const invalid = props.issues.length > 0
   const maxImages = maxImageBlocks(props.gridSize)
   const imageCount = clampImageCount(props.imageCount, props.gridSize)
-  const fillReason = fillWordsDisabledReason(props.gridSize, props.bank.length)
+  const fillReason = fillWordsDisabledReason(
+    props.gridSize,
+    props.bank.length,
+    props.holidayPackActive === true,
+  )
 
   return (
     <aside className="panel settings no-print" aria-label="הגדרות">

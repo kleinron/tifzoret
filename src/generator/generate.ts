@@ -9,7 +9,7 @@ import {
   MIN_WORD_LENGTH,
   parseWordList,
 } from './hebrew.ts'
-import { capBankWords, fillBatchSize } from './wordLimits.ts'
+import { capBankWords, fillWordsToAdd } from './wordLimits.ts'
 import {
   BLOCKED_CELL,
   blockedCellKeys,
@@ -173,7 +173,10 @@ export function pickDiverseWords(
   return picked
 }
 
-/** Exactly K corpus words for the one-shot bank button. K follows the board size. */
+/**
+ * Corpus words for one press of «הוסף K מילים».
+ * Count is K for the board size, or fewer when the bank is near 50.
+ */
 export function pickBankFillWords(input: {
   bank: readonly string[]
   gridSize: number
@@ -181,9 +184,11 @@ export function pickBankFillWords(input: {
   rng?: () => number
   corpus?: readonly string[]
 }): string[] {
+  const count = fillWordsToAdd(input.gridSize, input.bank.length)
+  if (count === 0) return []
   return pickDiverseWords(input.corpus ?? KID_WORDS, {
     exclude: new Set(input.bank),
-    count: fillBatchSize(input.gridSize),
+    count,
     gridSize: input.gridSize,
     noFinalLetters: input.noFinalLetters,
     rng: input.rng ?? Math.random,

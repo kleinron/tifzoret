@@ -182,6 +182,46 @@ describe('encode/decode round-trip', () => {
     expect(decoded?.words).toEqual(['שמש'])
   })
 
+  it('writes the legacy fill bit as 0 and ignores a 1 without shifting settings', () => {
+    const settings: ShareSettings = {
+      directions: ['rtl'],
+      gridSize: 12,
+      fontSize: 18,
+      noFinals: false,
+      imageCount: 1,
+    }
+    const bit = (fillBit: number) => {
+      const bits: number[] = []
+      const write = (value: number, width: number) => {
+        for (let i = width - 1; i >= 0; i--) bits.push((value >>> i) & 1)
+      }
+      write(2, 4)
+      write(0, 1)
+      write(1, 1)
+      write(0, 2)
+      write(1, 8)
+      write(4, 4)
+      write(6, 5)
+      write(fillBit, 1)
+      write(0, 1)
+      write(1, 5)
+      const bytes = new Uint8Array(Math.ceil(bits.length / 8))
+      for (let i = 0; i < bits.length; i++) {
+        if (bits[i]) bytes[i >> 3]! |= 1 << (7 - (i & 7))
+      }
+      return bytesToBase62(bytes)
+    }
+    const encoded = encodeSharePayload({ settings })
+    expect(encoded).toBe(bit(0))
+    expect(encoded).not.toBe(bit(1))
+    const decodedOn = decodeSharePayload(bit(1))
+    const decodedOff = decodeSharePayload(bit(0))
+    expect(decodedOn?.settings).toEqual(decodedOff?.settings)
+    expect(decodedOn?.settings).toEqual(settings)
+    expect(decodedOn?.settings).not.toHaveProperty('randomAge10')
+    expect(decodedOn?.words).toBeUndefined()
+  })
+
   it('ignores a legacy automatic-fill bit and does not restore a preference', () => {
     const encoded = bytesToBase62(
       legacyVersion1Bytes({

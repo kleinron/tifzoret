@@ -149,6 +149,7 @@ export default function App() {
     imageCount,
     noFinals,
     bank,
+    holidayPack,
     puzzleWords,
     imageBlocks,
     imageIds: activeImageIds,
@@ -159,6 +160,7 @@ export default function App() {
     imageCount,
     noFinals,
     bank,
+    holidayPack,
     puzzleWords,
     imageBlocks,
     imageIds: activeImageIds,
@@ -191,7 +193,8 @@ export default function App() {
 
   const addFillWords = () => {
     const live = liveRef.current
-    if (fillWordsDisabledReason(live.gridSize, live.bank.length)) return
+    const holidayPackActive = live.holidayPack !== 'regular'
+    if (fillWordsDisabledReason(live.gridSize, live.bank.length, holidayPackActive)) return
     const picked = pickBankFillWords({
       bank: live.bank,
       gridSize: live.gridSize,
@@ -443,6 +446,7 @@ export default function App() {
           addDisabled={!validation.canAdd}
           onRemoveWord={removeWord}
           onAddFillWords={addFillWords}
+          holidayPackActive={holidayPack !== 'regular'}
           noFinals={noFinals}
           onNoFinals={setNoFinals}
           gridSize={gridSize}

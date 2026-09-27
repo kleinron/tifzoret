@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { KID_WORDS } from '../data/kidWords.ts'
+import { fillWordsToAdd, MAX_BANK_WORDS } from './wordLimits.ts'
 import { DEFAULT_DIRECTION_IDS, DIRECTIONS, directionArrowRotation } from './directions.ts'
 import {
   generatePuzzle,
@@ -586,5 +587,29 @@ describe('kid corpus', () => {
       expect(hasFinalLetter(word)).toBe(false)
       expect(word).not.toBe('שמש')
     }
+  })
+
+  it('pickBankFillWords adds only the slots left when the bank is near 50', () => {
+    const bank = KID_WORDS.slice(0, MAX_BANK_WORDS - 2)
+    expect(fillWordsToAdd(12, bank.length)).toBe(2)
+    const picked = pickBankFillWords({
+      bank,
+      gridSize: 12,
+      noFinalLetters: false,
+      rng: mulberry32(3),
+    })
+    expect(picked).toHaveLength(2)
+    for (const word of picked) {
+      expect(KID_WORDS).toContain(word)
+      expect(bank).not.toContain(word)
+    }
+    expect(
+      pickBankFillWords({
+        bank: KID_WORDS.slice(0, MAX_BANK_WORDS),
+        gridSize: 16,
+        noFinalLetters: false,
+        rng: mulberry32(3),
+      }),
+    ).toEqual([])
   })
 })
