@@ -27,10 +27,11 @@ import {
   holidayPackById,
   HOLIDAY_PACKS,
   PURIM_WORDS,
+  REGULAR_BANK,
   type HolidayPackId,
 } from './holidayPacks.ts'
 
-const DEFAULT_BANK = ['שמש', 'ירח', 'כוכב', 'פרח', 'ספר', 'כדור', 'חתול', 'מים', 'שלום', 'בית']
+const DEFAULT_BANK = [...REGULAR_BANK]
 
 function success(result: ReturnType<typeof generatePuzzle>): GenerateSuccess {
   expect(result.ok).toBe(true)
@@ -153,12 +154,84 @@ describe('holiday pack word lists', () => {
     expect(hanukkahAfter.bank).not.toContain('סופגניה')
   })
 
-  it('leaves the bank untouched when restoring the regular pack', () => {
+  it('keeps an edited bank only when רגיל is already selected', () => {
     const bank = ['שמש', 'סביבון', 'ירח']
-    const next = applyHolidayPack({ bank }, 'regular')
+    const next = applyHolidayPack({ bank, fromPackId: 'regular', noFinals: true }, 'regular')
     expect(next.bank).toEqual(bank)
     expect(next.bank).not.toBe(bank)
+    expect(next.noFinals).toBe(true)
     expect(next.imageIds).toEqual(BOARD_IMAGE_IDS)
+    expect(next.regularSnapshot).toBeNull()
+  })
+
+  it('restores the saved regular bank, sofit setting, and drawings', () => {
+    const custom = ['שמש', 'כלב']
+    const hanukkah = applyHolidayPack(
+      { bank: custom, fromPackId: 'regular', noFinals: true, gridSize: 9 },
+      'hanukkah',
+    )
+    expect(hanukkah.bank).toEqual([...HANUKKAH_WORDS])
+    expect(hanukkah.noFinals).toBe(false)
+    expect(hanukkah.regularSnapshot).toEqual({ bank: custom, noFinals: true, gridSize: 9 })
+
+    const purim = applyHolidayPack(
+      {
+        bank: hanukkah.bank,
+        fromPackId: 'hanukkah',
+        noFinals: hanukkah.noFinals,
+        gridSize: 13,
+        regularSnapshot: hanukkah.regularSnapshot,
+      },
+      'purim',
+    )
+    expect(purim.bank).toEqual([...PURIM_WORDS])
+    expect(purim.bank).not.toContain('סופגנייה')
+    expect(purim.bank).not.toContain('חנוכה')
+    expect(purim.regularSnapshot).toEqual({ bank: custom, noFinals: true, gridSize: 9 })
+
+    const regular = applyHolidayPack(
+      {
+        bank: purim.bank,
+        fromPackId: 'purim',
+        noFinals: purim.noFinals,
+        gridSize: 13,
+        regularSnapshot: purim.regularSnapshot,
+      },
+      'regular',
+    )
+    expect(regular.bank).toEqual(custom)
+    expect(regular.bank).not.toContain('סופגנייה')
+    expect(regular.bank).not.toContain('פורים')
+    expect(regular.noFinals).toBe(true)
+    expect(regular.imageIds).toEqual([...BOARD_IMAGE_IDS])
+    expect(regular.regularSnapshot).toBeNull()
+    expect(regular.gridSize).toBe(9)
+    expect(
+      gridSizeAfterHolidayPack({
+        packId: 'regular',
+        bank: regular.bank,
+        currentGrid: 13,
+        restoredGrid: regular.gridSize,
+      }),
+    ).toBe(9)
+  })
+
+  it('restores the built-in regular pack when no snapshot was saved', () => {
+    for (const id of ['hanukkah', 'purim'] as const) {
+      const holiday = applyHolidayPack({ bank: ['כלב'] }, id)
+      const regular = applyHolidayPack(
+        { bank: holiday.bank, fromPackId: id, noFinals: holiday.noFinals },
+        'regular',
+      )
+      expect(regular.bank).toEqual([...REGULAR_BANK])
+      expect(regular.bank).not.toContain('סופגנייה')
+      expect(regular.bank).not.toContain('חנוכה')
+      expect(regular.bank).not.toContain('פורים')
+      expect(regular.noFinals).toBe(false)
+      expect(regular.imageIds).toEqual([...BOARD_IMAGE_IDS])
+      expect(regular.gridSize).toBeUndefined()
+      expect(holidayPackById('regular').words).toEqual([...REGULAR_BANK])
+    }
   })
 })
 
@@ -422,21 +495,44 @@ describe('holiday pack board size', () => {
     ).toBe(14)
   })
 
-  it('leaves the board size unchanged for רגיל', () => {
-    const hanukkah = applyHolidayPack({ bank: DEFAULT_BANK }, 'hanukkah')
-    const regular = applyHolidayPack({ bank: hanukkah.bank }, 'regular')
-    expect(regular.bank).toEqual(hanukkah.bank)
+  it('returns to the saved regular side, and otherwise leaves the side', () => {
+    const hanukkah = applyHolidayPack(
+      { bank: DEFAULT_BANK, fromPackId: 'regular', noFinals: false, gridSize: MIN_GRID_SIZE },
+      'hanukkah',
+    )
+    const grown = gridSizeAfterHolidayPack({
+      packId: 'hanukkah',
+      bank: hanukkah.bank,
+      currentGrid: MIN_GRID_SIZE,
+    })
+    expect(grown).toBeGreaterThan(MIN_GRID_SIZE)
+    const regular = applyHolidayPack(
+      {
+        bank: hanukkah.bank,
+        fromPackId: 'hanukkah',
+        noFinals: hanukkah.noFinals,
+        gridSize: grown,
+        regularSnapshot: hanukkah.regularSnapshot,
+      },
+      'regular',
+    )
+    expect(regular.bank).toEqual(DEFAULT_BANK)
+    expect(regular.bank).not.toContain('סופגנייה')
     expect(
       gridSizeAfterHolidayPack({
         packId: 'regular',
         bank: regular.bank,
-        currentGrid: MIN_GRID_SIZE,
+        currentGrid: grown,
+        restoredGrid: regular.gridSize,
       }),
     ).toBe(MIN_GRID_SIZE)
+
+    const unsaved = applyHolidayPack({ bank: hanukkah.bank, fromPackId: 'hanukkah' }, 'regular')
+    expect(unsaved.bank).toEqual([...REGULAR_BANK])
     expect(
       gridSizeAfterHolidayPack({
         packId: 'regular',
-        bank: regular.bank,
+        bank: unsaved.bank,
         currentGrid: 16,
       }),
     ).toBe(16)

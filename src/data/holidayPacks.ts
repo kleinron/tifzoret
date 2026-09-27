@@ -13,6 +13,20 @@ import {
 /** App default for «ללא אותיות סופיות»: finals stay in the puzzle. */
 export const DEFAULT_NO_FINALS = false
 
+/** Built-in word bank for «רגיל» when no earlier regular state was saved. */
+export const REGULAR_BANK = [
+  'שמש',
+  'ירח',
+  'כוכב',
+  'פרח',
+  'ספר',
+  'כדור',
+  'חתול',
+  'מים',
+  'שלום',
+  'בית',
+] as const
+
 export const HOLIDAY_PACK_IDS = ['regular', 'hanukkah', 'purim'] as const
 
 export type HolidayPackId = (typeof HOLIDAY_PACK_IDS)[number]
@@ -75,7 +89,7 @@ export const HOLIDAY_PACKS: readonly HolidayPack[] = [
   {
     id: 'regular',
     label: 'רגיל',
-    words: [],
+    words: REGULAR_BANK,
     imageIds: BOARD_IMAGE_IDS,
     noFinals: DEFAULT_NO_FINALS,
   },
@@ -106,23 +120,110 @@ export type AppliedHolidayPack = {
   bank: string[]
   noFinals: boolean
   imageIds: readonly BoardImageId[]
+  /** Kept while a holiday pack is active. Cleared once «רגיל» is restored. */
+  regularSnapshot: RegularSnapshot | null
+  /**
+   * Board side to apply. Set only when «רגיל» restores a saved side.
+   * Omitted means the caller leaves the current side alone.
+   */
+  gridSize?: number
+}
+
+/** Word bank, final-letter checkbox, and board side from before a holiday. */
+export type RegularSnapshot = {
+  bank: readonly string[]
+  noFinals: boolean
+  gridSize?: number
+}
+
+/**
+ * State the chip switch reads.
+ * Omitting `fromPackId` means «the previous pack is unknown»: a holiday chip
+ * still saves a snapshot, and «רגיל» restores that snapshot or the built-in pack.
+ * Pass `fromPackId: 'regular'` to keep an edited regular bank.
+ */
+export type HolidaySwitchState = {
+  bank: readonly string[]
+  fromPackId?: HolidayPackId
+  noFinals?: boolean
+  gridSize?: number
+  regularSnapshot?: RegularSnapshot | null
+}
+
+function copySnapshot(snapshot: RegularSnapshot): RegularSnapshot {
+  return {
+    bank: [...snapshot.bank],
+    noFinals: snapshot.noFinals,
+    ...(snapshot.gridSize !== undefined ? { gridSize: snapshot.gridSize } : {}),
+  }
+}
+
+function snapshotFrom(current: HolidaySwitchState): RegularSnapshot {
+  return copySnapshot({
+    bank: current.bank,
+    noFinals: current.noFinals ?? DEFAULT_NO_FINALS,
+    ...(current.gridSize !== undefined ? { gridSize: current.gridSize } : {}),
+  })
 }
 
 /**
  * חנוכה and פורים replace the word bank with that pack’s words only.
  * Words from the previous pack and from manual edits are dropped.
- * «רגיל» restores the default checkbox and catalog, and leaves the bank as it is.
+ * Leaving «רגיל» saves that bank, the final-letter checkbox, and the board side.
+ * «רגיל» puts that snapshot back, including the default drawing catalog.
+ * With no snapshot, «רגיל» uses the built-in regular pack.
+ * Applying «רגיל» while it is already selected keeps the current bank.
  */
 export function applyHolidayPack(
-  current: { bank: readonly string[] },
+  current: HolidaySwitchState,
   packId: HolidayPackId,
 ): AppliedHolidayPack {
   const pack = holidayPackById(packId)
+  const fromPackId = current.fromPackId
+  const leavingRegular = (fromPackId ?? 'regular') === 'regular'
+
+  if (packId !== 'regular') {
+    return {
+      packId,
+      bank: [...pack.words],
+      noFinals: pack.noFinals,
+      imageIds: pack.imageIds,
+      regularSnapshot: leavingRegular
+        ? snapshotFrom(current)
+        : current.regularSnapshot
+          ? copySnapshot(current.regularSnapshot)
+          : null,
+    }
+  }
+
+  if (fromPackId === 'regular' && !current.regularSnapshot) {
+    return {
+      packId,
+      bank: [...current.bank],
+      noFinals: current.noFinals ?? pack.noFinals,
+      imageIds: pack.imageIds,
+      regularSnapshot: null,
+    }
+  }
+
+  if (current.regularSnapshot) {
+    const saved = copySnapshot(current.regularSnapshot)
+    return {
+      packId,
+      bank: [...saved.bank],
+      noFinals: saved.noFinals,
+      imageIds: pack.imageIds,
+      regularSnapshot: null,
+      ...(saved.gridSize !== undefined ? { gridSize: saved.gridSize } : {}),
+    }
+  }
+
   return {
     packId,
-    bank: packId === 'regular' ? [...current.bank] : [...pack.words],
+    bank: [...pack.words],
     noFinals: pack.noFinals,
     imageIds: pack.imageIds,
+    regularSnapshot: null,
   }
 }
 
@@ -131,14 +232,17 @@ export function applyHolidayPack(
  * חנוכה and פורים size from the replaced bank (that pack’s words only).
  * The side rises to the same word target automatic fill already uses,
  * and to the «הגדל לוח» size when a word is longer than the current board.
- * It never goes down. «רגיל» leaves the side as it is.
+ * It never goes down.
+ * «רגיל» returns to the side saved with the regular snapshot, when there is one.
+ * Otherwise the side stays.
  */
 export function gridSizeAfterHolidayPack(input: {
   packId: HolidayPackId
   bank: readonly string[]
   currentGrid: number
+  restoredGrid?: number
 }): number {
-  if (input.packId === 'regular') return input.currentGrid
+  if (input.packId === 'regular') return input.restoredGrid ?? input.currentGrid
   const forCount = gridSizeForWordCount(input.bank.length)
   const forLength = suggestedGridSizeForWords(input.bank, input.currentGrid) ?? 0
   return Math.max(input.currentGrid, forCount, forLength)

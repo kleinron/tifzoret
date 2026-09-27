@@ -6,9 +6,14 @@ import { createRoot, type Root } from 'react-dom/client'
 import { describe, expect, it } from 'vitest'
 import App from '../App.tsx'
 import { SettingsPanel } from './SettingsPanel.tsx'
-import { HANUKKAH_WORDS, PURIM_WORDS } from '../data/holidayPacks.ts'
+import { HANUKKAH_WORDS, PURIM_WORDS, REGULAR_BANK } from '../data/holidayPacks.ts'
 import { DIRECTIONS } from '../generator/directions.ts'
 import { gridSizeForWordCount, MAX_BANK_WORDS } from '../generator/wordLimits.ts'
+import {
+  BOARD_IMAGE_IDS,
+  HANUKKAH_IMAGE_IDS,
+  PURIM_IMAGE_IDS,
+} from '../images/catalog.ts'
 
 function setNativeValue(el: HTMLInputElement, value: string) {
   const proto = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')
@@ -214,6 +219,33 @@ function bankWords(root: ParentNode): string[] {
   })
 }
 
+function finalsBox(root: ParentNode): HTMLInputElement {
+  const label = [...root.querySelectorAll('label')].find((node) =>
+    node.textContent?.includes('ללא אותיות סופיות'),
+  )
+  const input = label?.querySelector('input')
+  if (!(input instanceof HTMLInputElement)) throw new Error('missing finals checkbox')
+  return input
+}
+
+function boardImageIds(root: ParentNode): string[] {
+  return [...root.querySelectorAll('[data-image]')].map(
+    (node) => node.getAttribute('data-image') ?? '',
+  )
+}
+
+function puzzleWords(root: ParentNode): string[] {
+  return [...root.querySelectorAll('.word-bank-list li')].map((node) =>
+    (node.textContent ?? '').trim(),
+  )
+}
+
+function expectDrawings(root: ParentNode, allowed: readonly string[]) {
+  const ids = boardImageIds(root)
+  expect(ids.length).toBeGreaterThan(0)
+  for (const id of ids) expect([...allowed]).toContain(id)
+}
+
 async function settlePuzzle() {
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 600))
@@ -262,9 +294,14 @@ describe('holiday pack board size in the app', () => {
     )
 
     await chooseHoliday(hanukkah.container, 'רגיל')
-    await staleThumb(gridRange(hanukkah.container), '8')
-    expect(sizeLabel(hanukkah.container)).toBe(`גודל רשת: ${hanukkahSize}×${hanukkahSize}`)
-    expect(bankWords(hanukkah.container)).toEqual([...HANUKKAH_WORDS])
+    await staleThumb(gridRange(hanukkah.container), hanukkahSize)
+    expect(sizeLabel(hanukkah.container)).toBe('גודל רשת: 8×8')
+    expect(gridRange(hanukkah.container).value).toBe('8')
+    expect(bankWords(hanukkah.container)).toEqual([...REGULAR_BANK])
+    expect(bankWords(hanukkah.container)).not.toContain('סופגנייה')
+    await settlePuzzle()
+    expect(hanukkah.container.querySelector('.banner.error')).toBeNull()
+    expect(hanukkah.container.querySelector('.status')?.textContent).toContain('8×8')
     await hanukkah.unmount()
 
     const purim = await renderApp()
@@ -284,8 +321,83 @@ describe('holiday pack board size in the app', () => {
       `${PURIM_WORDS.length} / 50`,
     )
     await chooseHoliday(purim.container, 'רגיל')
-    expect(sizeLabel(purim.container)).toBe(`גודל רשת: ${purimSize}×${purimSize}`)
+    await staleThumb(gridRange(purim.container), purimSize)
+    expect(sizeLabel(purim.container)).toBe('גודל רשת: 8×8')
+    expect(bankWords(purim.container)).toEqual([...REGULAR_BANK])
+    expect(bankWords(purim.container)).not.toContain('סופגנייה')
+    await settlePuzzle()
+    expect(purim.container.querySelector('.banner.error')).toBeNull()
+    expect(purim.container.querySelector('.status')?.textContent).toContain('8×8')
     await purim.unmount()
+  })
+
+  it('restores the regular bank, drawings, and sofit setting from חנוכה and from פורים', async () => {
+    const app = await renderApp()
+    expect(finalsBox(app.container).checked).toBe(false)
+    await act(async () => {
+      finalsBox(app.container).click()
+    })
+    expect(finalsBox(app.container).checked).toBe(true)
+    const sun = [...app.container.querySelectorAll('.chip-list .chip')].find((button) =>
+      button.textContent?.includes('שמש'),
+    )
+    if (!sun) throw new Error('missing שמש')
+    await act(async () => {
+      clickControl(sun)
+    })
+    const edited = bankWords(app.container)
+    expect(edited).not.toContain('שמש')
+    expect(edited).not.toContain('סופגנייה')
+
+    await chooseHoliday(app.container, 'חנוכה')
+    expect(bankWords(app.container)).toEqual([...HANUKKAH_WORDS])
+    expect(bankWords(app.container)).toContain('סופגנייה')
+    expect(finalsBox(app.container).checked).toBe(false)
+    const hanukkahSize = String(gridSizeForWordCount(HANUKKAH_WORDS.length))
+    expect(sizeLabel(app.container)).toBe(`גודל רשת: ${hanukkahSize}×${hanukkahSize}`)
+    await settlePuzzle()
+    expect(app.container.querySelector('.banner.error')).toBeNull()
+    expectDrawings(app.container, HANUKKAH_IMAGE_IDS)
+
+    await chooseHoliday(app.container, 'רגיל')
+    expect(bankWords(app.container)).toEqual(edited)
+    expect(bankWords(app.container)).not.toContain('סופגנייה')
+    expect(finalsBox(app.container).checked).toBe(true)
+    expect(sizeLabel(app.container)).toBe('גודל רשת: 12×12')
+    await settlePuzzle()
+    expect(app.container.querySelector('.banner.error')).toBeNull()
+    expect(puzzleWords(app.container)).not.toContain('סופגנייה')
+    expectDrawings(app.container, BOARD_IMAGE_IDS)
+    for (const id of boardImageIds(app.container)) {
+      expect([...HANUKKAH_IMAGE_IDS]).not.toContain(id)
+      expect([...PURIM_IMAGE_IDS]).not.toContain(id)
+    }
+
+    await chooseHoliday(app.container, 'פורים')
+    expect(bankWords(app.container)).toEqual([...PURIM_WORDS])
+    expect(bankWords(app.container)).not.toContain('סופגנייה')
+    expect(finalsBox(app.container).checked).toBe(false)
+    await settlePuzzle()
+    expect(app.container.querySelector('.banner.error')).toBeNull()
+    expectDrawings(app.container, PURIM_IMAGE_IDS)
+
+    await chooseHoliday(app.container, 'רגיל')
+    expect(bankWords(app.container)).toEqual(edited)
+    expect(bankWords(app.container)).not.toContain('סופגנייה')
+    expect(bankWords(app.container)).not.toContain('פורים')
+    expect(finalsBox(app.container).checked).toBe(true)
+    expect(sizeLabel(app.container)).toBe('גודל רשת: 12×12')
+    await settlePuzzle()
+    expect(app.container.querySelector('.banner.error')).toBeNull()
+    expect(app.container.querySelector('.status')?.textContent).toContain('12×12')
+    expect(puzzleWords(app.container)).not.toContain('סופגנייה')
+    expect(puzzleWords(app.container)).not.toContain('פורים')
+    expectDrawings(app.container, BOARD_IMAGE_IDS)
+    for (const id of boardImageIds(app.container)) {
+      expect([...HANUKKAH_IMAGE_IDS]).not.toContain(id)
+      expect([...PURIM_IMAGE_IDS]).not.toContain(id)
+    }
+    await app.unmount()
   })
 
   it('replaces the word bank when switching between חנוכה and פורים', async () => {
@@ -305,6 +417,15 @@ describe('holiday pack board size in the app', () => {
     expect(bankWords(app.container)).not.toContain('פורים')
     expect(bankWords(app.container)).not.toContain('אסתר')
     expect(bankWords(app.container)).not.toContain('סופגניה')
+
+    await chooseHoliday(app.container, 'רגיל')
+    expect(bankWords(app.container)).toEqual([...REGULAR_BANK])
+    expect(bankWords(app.container)).not.toContain('סופגנייה')
+    expect(bankWords(app.container)).not.toContain('פורים')
+    expect(finalsBox(app.container).checked).toBe(false)
+    await settlePuzzle()
+    expect(app.container.querySelector('.banner.error')).toBeNull()
+    expectDrawings(app.container, BOARD_IMAGE_IDS)
     await app.unmount()
   })
 })
