@@ -52,23 +52,12 @@ import {
   DEFAULT_NO_FINALS,
   gridSizeAfterHolidayPack,
   holidayPackById,
+  REGULAR_BANK,
   type HolidayPackId,
+  type RegularSnapshot,
 } from './data/holidayPacks.ts'
 import { catalogShortcutOpens, shortcutFocusFromTarget } from './images/catalogShortcut.ts'
 import { payloadFromSearch, type SharePayload } from './share/codec.ts'
-
-const DEFAULT_BANK = [
-  'שמש',
-  'ירח',
-  'כוכב',
-  'פרח',
-  'ספר',
-  'כדור',
-  'חתול',
-  'מים',
-  'שלום',
-  'בית',
-]
 
 const FOUND_COLORS = [
   '#f4c7c3',
@@ -106,7 +95,7 @@ export default function App() {
   )
   const [draft, setDraft] = useState('')
   const [bank, setBank] = useState<string[]>(() =>
-    boot?.words !== undefined ? boot.words : DEFAULT_BANK,
+    boot?.words !== undefined ? boot.words : [...REGULAR_BANK],
   )
   const [noFinals, setNoFinals] = useState(
     () => boot?.settings?.noFinals ?? DEFAULT_NO_FINALS,
@@ -139,6 +128,7 @@ export default function App() {
   const activeImageIds = holidayPackById(holidayPack).imageIds
   const closeCatalog = useCallback(() => setCatalogOpen(false), [])
   const actionRef = useRef<PuzzleRefresh>('settings')
+  const regularSnapshotRef = useRef<RegularSnapshot | null>(null)
   const bootedRef = useRef(false)
   const genIdRef = useRef(0)
   const genTimerRef = useRef<number | null>(null)
@@ -250,7 +240,19 @@ export default function App() {
   }
 
   const selectHoliday = (id: HolidayPackId) => {
-    const next = applyHolidayPack({ bank }, id)
+    if (id === holidayPack) return
+    const next = applyHolidayPack(
+      {
+        bank,
+        fromPackId: holidayPack,
+        noFinals,
+        gridSize,
+        imageIds: activeImageIds,
+        regularSnapshot: regularSnapshotRef.current,
+      },
+      id,
+    )
+    regularSnapshotRef.current = next.regularSnapshot
     setHolidayPack(next.packId)
     setBank(next.bank)
     setNoFinals(next.noFinals)
@@ -258,6 +260,7 @@ export default function App() {
       packId: id,
       bank: next.bank,
       currentGrid: gridSize,
+      restoredGrid: next.gridSize,
     })
     if (nextSize !== gridSize) applyGridSize(nextSize)
   }
