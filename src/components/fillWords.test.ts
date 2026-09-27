@@ -6,7 +6,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { describe, expect, it } from 'vitest'
 import App from '../App.tsx'
 import { KID_WORDS } from '../data/kidWords.ts'
-import { PURIM_WORDS } from '../data/holidayPacks.ts'
+import { DEFAULT_BANK, PURIM_WORDS } from '../data/holidayPacks.ts'
 import { FILL_HOLIDAY_REASON } from '../generator/wordLimits.ts'
 import { BASE62_ALPHABET, SHARE_QUERY_PARAM } from '../share/codec.ts'
 
@@ -140,6 +140,8 @@ describe('one-shot fill button', () => {
   it('disables the button for a holiday pack and does not add corpus words', async () => {
     window.history.replaceState(null, '', '/')
     const view = await renderApp()
+    const beforeHoliday = chipWords(view.container)
+    expect(beforeHoliday).toEqual([...DEFAULT_BANK])
     const toggle = view.container.querySelector('button.holiday-toggle')
     if (!(toggle instanceof HTMLButtonElement)) throw new Error('missing holiday toggle')
     await act(async () => {
@@ -173,8 +175,10 @@ describe('one-shot fill button', () => {
       regular.click()
     })
     await settlePuzzle()
-    expect(chipWords(view.container)).toEqual([...PURIM_WORDS])
+    expect(chipWords(view.container)).toEqual(beforeHoliday)
+    expect(chipWords(view.container)).toEqual([...DEFAULT_BANK])
     expect(fillButton(view.container).disabled).toBe(false)
+    expect(fillButton(view.container).textContent).toBe('הוסף 3 מילים')
     expect(view.container.textContent).not.toContain(FILL_HOLIDAY_REASON)
     await view.unmount()
   })
